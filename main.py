@@ -72,28 +72,61 @@ async def analyze(request: AnalyzeRequest):
     # Extract string formatted for frontend
     balanced_views_strings = articles
 
-    # 2. Fact Check Logic using the Classifier and News Context
-    cred_score = 15.0 # Very low default if no news supports it and it feels fake
-    
+    # 2. Fact Check Logic using NLI (Natural Language Inference)
+    # BART-MNLI is an NLI model — use it properly: premise + hypothesis → entailment/contradiction/neutral
+    cred_score = 15.0  # Very low default
+
     if classifier:
         if articles and articles[0] != "Trusted coverage not available.":
-            # We have generalized web results! Let's see if the text aligns with the search context.
-            combined_context = text + " Context: " + " ".join(articles)
-            result = classifier(combined_context, candidate_labels=["factual", "misinformation"])
-            scores = dict(zip(result['labels'], result['scores']))
+            # -- NLI Approach: Web snippets = premise, User claim = hypothesis --
+            # Check if the web evidence SUPPORTS or CONTRADICTS the claim
             
-            # Base score off how factual the statement is relative to the web context
-            base_score = scores.get("factual", 0) * 100
+            nli_scores_list = []
+            for article in articles[:3]:
+                # Use NLI: premise=article snippet, hypothesis=claim
+                nli_input = f"{article} </s></s> {text}"
+                nli_result = classifier(nli_input, candidate_labels=["entailment", "contradiction", "neutral"])
+                nli_map = dict(zip(nli_result['labels'], nli_result['scores']))
+                nli_scores_list.append(nli_map)
+                print(f"  NLI vs snippet: entail={nli_map.get('entailment',0):.2f} contra={nli_map.get('contradiction',0):.2f} neutral={nli_map.get('neutral',0):.2f}")
             
-            # Since there's actual web coverage, give it a significant credibility boost baseline.
-            cred_score = round(max(base_score, 65.0), 1)
-            print(f"Web Context found! Fact-checked score: {cred_score}")
+            # Average across all snippets
+            avg_entail = sum(s.get("entailment", 0) for s in nli_scores_list) / len(nli_scores_list)
+            avg_contra = sum(s.get("contradiction", 0) for s in nli_scores_list) / len(nli_scores_list)
+            avg_neutral = sum(s.get("neutral", 0) for s in nli_scores_list) / len(nli_scores_list)
+            print(f"Averaged NLI: entail={avg_entail:.2f} contra={avg_contra:.2f} neutral={avg_neutral:.2f}")
+
+            # Convert NLI to credibility score
+            if avg_entail > avg_contra and avg_entail > avg_neutral:
+                # Web evidence SUPPORTS the claim
+                cred_score = 55.0 + (avg_entail * 40.0)  # Range: 55-95
+            elif avg_contra > avg_entail and avg_contra > avg_neutral:
+                # Web evidence CONTRADICTS the claim
+                cred_score = 10.0 + ((1.0 - avg_contra) * 30.0)  # Range: 10-40
+            else:
+                # Neutral — inconclusive
+                cred_score = 35.0 + (avg_entail * 30.0)  # Range: 35-65
+
+            # -- Additional check: detect health misinformation patterns --
+            lower = text.lower()
+            misinfo_keywords = ["cures cancer", "cure cancer", "kills virus", "miracle cure",
+                                "100% effective", "doctors don't want", "big pharma", "secret cure",
+                                "this one trick", "they don't want you to know"]
+            if any(kw in lower for kw in misinfo_keywords):
+                cred_score = min(cred_score, 25.0)  # Hard cap for obvious quackery
+                print(f"Health misinformation pattern detected → capped at {cred_score}")
+
+            cred_score = round(float(cred_score), 1)
+            print(f"NLI-based score: {cred_score}")
         else:
             # No web context found. Zero-shot on the text alone.
-            result = classifier(text, candidate_labels=["real news", "fake news"])
+            result = classifier(text, candidate_labels=["verified news", "unverified claim", "misinformation"])
             scores = dict(zip(result['labels'], result['scores']))
-            cred_score = round(scores.get("real news", 0) * 100, 1)
-            print(f"No web context found. Zero-shot score: {cred_score}")
+            verified = scores.get("verified news", 0)
+            misinfo = scores.get("misinformation", 0)
+            # Weighted: verified boosts, misinformation penalizes
+            cred_score = round(float(verified * 80.0 + (1.0 - misinfo) * 20.0), 1)
+            print(f"No web context. Standalone score: {cred_score}")
 
     boost = 0.0
     model_cred = cred_score
@@ -158,4 +191,4 @@ async def feedback(request: FeedbackRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
