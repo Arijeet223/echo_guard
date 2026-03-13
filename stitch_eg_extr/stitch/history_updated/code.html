@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EchoGuard - History</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#1d468b", // Deep Blue from theme
+                "accent": "#d4c8b2", // Beige accent
+                "background": "#fdfbf7", // Off-white/Beige background
+                "surface": "#ffffff",
+                "border": "#e5e1d8",
+              },
+              fontFamily: {
+                "display": ["Inter", "sans-serif"]
+              },
+              borderRadius: {
+                "DEFAULT": "0.5rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+              },
+            },
+          },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fdfbf7;
+        }
+        .item-shadow {
+            box-shadow: 0 2px 4px rgba(29, 70, 139, 0.04);
+        }
+        .active-nav {
+            color: #1d468b;
+        }
+        .inactive-nav {
+            color: #8c887d;
+        }
+    </style>
+</head>
+<body class="text-slate-800 font-display min-h-screen pb-24">
+<!-- Header Section -->
+<header class="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+<div class="flex items-center justify-between p-4 max-w-2xl mx-auto">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined">history</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight text-primary">History</h1>
+</div>
+<div class="flex gap-1">
+<button class="p-2 rounded-full hover:bg-black/5 text-slate-500">
+<span class="material-symbols-outlined">search</span>
+</button>
+<button class="p-2 rounded-full hover:bg-black/5 text-slate-500">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+</div>
+</div>
+</header>
+<main class="max-w-2xl mx-auto px-4 py-6">
+<!-- Section: Past 24 Hours -->
+<div class="mb-8">
+<h2 class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 mb-4 px-1">Past 24 hours</h2>
+<div class="space-y-4">
+<!-- History Item Card 1 -->
+<div class="flex flex-col gap-3 p-4 rounded-xl bg-surface border border-border item-shadow hover:border-primary/30 transition-all cursor-pointer group">
+<div class="flex justify-between items-start gap-4">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-600 uppercase">False</span>
+<span class="text-slate-400 text-xs font-medium">2 hours ago</span>
+</div>
+<p class="text-slate-900 font-semibold leading-tight group-hover:text-primary transition-colors">AI will replace all software engineers by the end of 2025.</p>
+</div>
+<div class="shrink-0 text-right">
+<div class="text-2xl font-bold text-red-500 leading-none">15<span class="text-xs text-slate-400 font-normal ml-0.5">/100</span></div>
+<p class="text-[9px] text-slate-400 uppercase font-bold tracking-wider mt-1">Echo Score</p>
+</div>
+</div>
+<div class="flex items-center gap-2 pt-3 border-t border-border/50">
+<span class="material-symbols-outlined text-slate-400 text-[16px]">link</span>
+<p class="text-xs text-slate-500 truncate">Source: twitter.com/tech_leaks...</p>
+</div>
+</div>
+<!-- History Item Card 2 -->
+<div class="flex flex-col gap-3 p-4 rounded-xl bg-surface border border-border item-shadow hover:border-primary/30 transition-all cursor-pointer group">
+<div class="flex justify-between items-start gap-4">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-700 uppercase">Unverified</span>
+<span class="text-slate-400 text-xs font-medium">10 hours ago</span>
+</div>
+<p class="text-slate-900 font-semibold leading-tight group-hover:text-primary transition-colors">New discovery confirms hidden oceans beneath Mars' surface.</p>
+</div>
+<div class="shrink-0 text-right">
+<div class="text-2xl font-bold text-amber-500 leading-none">45<span class="text-xs text-slate-400 font-normal ml-0.5">/100</span></div>
+<p class="text-[9px] text-slate-400 uppercase font-bold tracking-wider mt-1">Echo Score</p>
+</div>
+</div>
+<div class="flex items-center gap-2 pt-3 border-t border-border/50">
+<span class="material-symbols-outlined text-slate-400 text-[16px]">science</span>
+<p class="text-xs text-slate-500 truncate">Source: ScienceDaily Research Paper</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Section: Past Week -->
+<div>
+<h2 class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 mb-4 px-1">Past Week</h2>
+<div class="space-y-4">
+<!-- History Item Card 3 -->
+<div class="flex flex-col gap-3 p-4 rounded-xl bg-surface border border-border item-shadow hover:border-primary/30 transition-all cursor-pointer group">
+<div class="flex justify-between items-start gap-4">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-700 uppercase">True</span>
+<span class="text-slate-400 text-xs font-medium">3 days ago</span>
+</div>
+<p class="text-slate-900 font-semibold leading-tight group-hover:text-primary transition-colors">Global average temperature reaches record high for third month straight.</p>
+</div>
+<div class="shrink-0 text-right">
+<div class="text-2xl font-bold text-green-600 leading-none">92<span class="text-xs text-slate-400 font-normal ml-0.5">/100</span></div>
+<p class="text-[9px] text-slate-400 uppercase font-bold tracking-wider mt-1">Echo Score</p>
+</div>
+</div>
+<div class="flex items-center gap-2 pt-3 border-t border-border/50">
+<span class="material-symbols-outlined text-slate-400 text-[16px]">public</span>
+<p class="text-xs text-slate-500 truncate">Source: World Meteorological Organization</p>
+</div>
+</div>
+<!-- History Item Card 4 -->
+<div class="flex flex-col gap-3 p-4 rounded-xl bg-surface border border-border item-shadow hover:border-primary/30 transition-all cursor-pointer group">
+<div class="flex justify-between items-start gap-4">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-600 uppercase">False</span>
+<span class="text-slate-400 text-xs font-medium">5 days ago</span>
+</div>
+<p class="text-slate-900 font-semibold leading-tight group-hover:text-primary transition-colors">Major bank announces complete shift to cryptocurrency by next Monday.</p>
+</div>
+<div class="shrink-0 text-right">
+<div class="text-2xl font-bold text-red-500 leading-none">08<span class="text-xs text-slate-400 font-normal ml-0.5">/100</span></div>
+<p class="text-[9px] text-slate-400 uppercase font-bold tracking-wider mt-1">Echo Score</p>
+</div>
+</div>
+<div class="flex items-center gap-2 pt-3 border-t border-border/50">
+<span class="material-symbols-outlined text-slate-400 text-[16px]">payments</span>
+<p class="text-xs text-slate-500 truncate">Source: Viral WhatsApp Message</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-xl border-t border-border pb-safe z-50">
+<div class="flex justify-around items-center h-20 px-2 max-w-2xl mx-auto">
+<a class="flex flex-col items-center gap-1 inactive-nav hover:text-primary transition-colors flex-1" href="#">
+<span class="material-symbols-outlined text-[26px]">home</span>
+<span class="text-[10px] font-bold uppercase tracking-tight">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 inactive-nav hover:text-primary transition-colors flex-1" href="#">
+<span class="material-symbols-outlined text-[26px]">forum</span>
+<span class="text-[10px] font-bold uppercase tracking-tight">Forum</span>
+</a>
+<a class="flex flex-col items-center -mt-8 flex-1" href="#">
+<div class="w-14 h-14 rounded-full bg-primary text-white shadow-lg shadow-primary/20 flex items-center justify-center active:scale-95 transition-transform border-4 border-background">
+<span class="material-symbols-outlined text-3xl font-bold">qr_code_scanner</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-tight mt-1 text-primary">Scan</span>
+</a>
+<a class="flex flex-col items-center gap-1 active-nav flex-1" href="#">
+<span class="material-symbols-outlined text-[26px] fill-1">history</span>
+<span class="text-[10px] font-bold uppercase tracking-tight">History</span>
+</a>
+<a class="flex flex-col items-center gap-1 inactive-nav hover:text-primary transition-colors flex-1" href="#">
+<span class="material-symbols-outlined text-[26px]">person</span>
+<span class="text-[10px] font-bold uppercase tracking-tight">Profile</span>
+</a>
+</div>
+</nav>
+</body></html>

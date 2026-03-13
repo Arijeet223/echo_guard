@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EchoGuard - Off-White &amp; Beige Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1d468b",
+                        "accent": "#0d9488",
+                        "background": "#fdfbf7", // Off-white/Beige background
+                        "surface": "#ffffff",
+                        "card-border": "#f1eee9",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "8px",
+                        "lg": "12px",
+                        "xl": "16px",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fdfbf7;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background text-slate-800 min-h-screen flex flex-col">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-50 flex items-center justify-between p-4 bg-background/90 backdrop-blur-md border-b border-card-border">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 bg-primary rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xl">security</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight text-slate-900">EchoGuard</h1>
+</div>
+<button class="relative p-2 text-slate-600 hover:bg-white rounded-full transition-colors border border-transparent hover:border-card-border">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-background"></span>
+</button>
+</header>
+<main class="flex-1 overflow-y-auto pb-24">
+<!-- Shrunk Input Analyzer Card -->
+<section class="p-4">
+<div class="bg-surface rounded-xl p-4 shadow-sm border border-card-border">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-accent text-lg">analytics</span>
+<h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">Input Analyzer</h2>
+</div>
+<div class="relative mb-3">
+<textarea id="analyzeInput" class="w-full h-20 p-3 bg-background border border-card-border rounded-lg text-sm focus:ring-1 focus:ring-primary focus:border-primary resize-none placeholder-slate-400" placeholder="Paste text, link, or claim to analyze..."></textarea>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex gap-1.5">
+<button class="p-2 bg-background hover:bg-card-border rounded-lg text-slate-600 transition-colors border border-card-border">
+<span class="material-symbols-outlined text-sm">image</span>
+</button>
+<button class="p-2 bg-background hover:bg-card-border rounded-lg text-slate-600 transition-colors border border-card-border">
+<span class="material-symbols-outlined text-sm">link</span>
+</button>
+</div>
+<button onclick="handleAnalyze()" class="flex items-center gap-2 px-5 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-semibold transition-all">
+<span>Analyze</span>
+<span class="material-symbols-outlined text-sm">send</span>
+</button>
+</div>
+</div>
+<script>
+    function handleAnalyze() {
+        const text = document.getElementById('analyzeInput').value;
+        if(text.trim()) {
+            window.location.href = '../analysis_page_updated/code.html?text=' + encodeURIComponent(text);
+        } else {
+            alert('Please paste some text or a link to analyze.');
+        }
+    }
+</script>
+</section>
+<!-- Quick Stats Grid -->
+<!-- Trending Claims Section - Vertical Feed -->
+<section class="py-6">
+<div class="flex items-center justify-between px-4 mb-4">
+<h2 class="text-lg font-bold text-slate-900">Trending Claims</h2>
+<button class="text-xs font-semibold text-primary hover:underline">View All</button>
+</div>
+<div class="flex flex-col gap-6 px-4">
+<!-- Claim Card 1 -->
+<article class="bg-surface rounded-xl overflow-hidden shadow-sm border border-card-border">
+<div class="h-48 relative">
+<img class="w-full h-full object-cover" data-alt="Abstract news and media digital background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAx4Ur8UMD3y2r8cYI6T3KzrYAgIjwSz_XgAWJc-3U5qAg61izRjibgwemLAyd0r4ti18W-TuQK08XP-q9CIBEZ1xvRFbvfor60XUjNmvYbi9auiHNKOR_r0e3OpKzYDqNU7_NzgUrwRQVR_qF_jLR0cJMytXWitH_DaoSsLCrts-QD4iVSULQrcZf34d7Mkt3Y2P8NR_aGdEqjcwtRG_TCfFJTYyzN-9AE7RGBpqQIMi6LpkHJzzzv4S8ITJf3eCMtYgOdC1WA6Q"/>
+<span class="absolute top-3 right-3 px-2 py-1 bg-red-500 text-white text-[10px] font-bold rounded uppercase tracking-wider">False</span>
+</div>
+<div class="p-4">
+<h3 class="font-bold text-base leading-snug mb-3">New health regulation bans specific vegetable imports starting next month</h3>
+<div class="flex items-center justify-between pt-3 border-t border-card-border">
+<div class="flex flex-col">
+<span class="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Echo Score</span>
+<span class="text-base font-bold text-red-500">14/100</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">share</span>
+</button>
+<div class="w-10 h-10 rounded-full border-2 border-red-100 bg-red-50 flex items-center justify-center">
+<span class="material-symbols-outlined text-red-500">error</span>
+</div>
+</div>
+</div>
+</div>
+</article>
+<!-- Claim Card 2 -->
+<article class="bg-surface rounded-xl overflow-hidden shadow-sm border border-card-border">
+<div class="h-48 relative">
+<img class="w-full h-full object-cover" data-alt="Satellite earth network connection abstract image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4vqnr4JmbDaUyU2ErsELTF_vkQhSNYPMEuDMWW65PN13lBeMvTe4oFGmaX3XVneoHgQsdTH_u8i6VWM_KvjLHLJO4TkmMqsEzQmMkpq4f8rIYlpKMugp0TWRSz9VShuJBzEkfYSjiDhoCTWtWDPYbuHOyMrkAIt0vgthm_ewkCLgszWrKVWGot7yksiZzjwWNiOGImz0lzfDF8KbPLmFQV0HELbRbBDycO_1oF7yG3LiN76lVkYAhESC5i01sUe3WCIpTBlx6PA"/>
+<span class="absolute top-3 right-3 px-2 py-1 bg-accent text-white text-[10px] font-bold rounded uppercase tracking-wider">Verified</span>
+</div>
+<div class="p-4">
+<h3 class="font-bold text-base leading-snug mb-3">Global internet traffic reaches record high during international event</h3>
+<div class="flex items-center justify-between pt-3 border-t border-card-border">
+<div class="flex flex-col">
+<span class="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Echo Score</span>
+<span class="text-base font-bold text-accent">98/100</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">share</span>
+</button>
+<div class="w-10 h-10 rounded-full border-2 border-accent/20 bg-accent/5 flex items-center justify-center">
+<span class="material-symbols-outlined text-accent">check_circle</span>
+</div>
+</div>
+</div>
+</div>
+</article>
+<!-- Claim Card 3 -->
+<article class="bg-surface rounded-xl overflow-hidden shadow-sm border border-card-border">
+<div class="h-48 relative">
+<img class="w-full h-full object-cover" data-alt="Traditional newspaper stacked background texture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjJ5cMHU6inyniuydI-tVw4hnsbe1w7DGmCVDPMuW15UKyxas5ZHAhSFBZ_lLLHeL0DJLvSMeZOVnVJzBv1gUqsjJ1OY6BnbpprGJIrt-HQ6JSjJbyCN3qNJ3-cSXnKNg7buVSZy943LTvGiSwt6Fb6BQKs3xxkDCuYynWwgko-kFj1sea4Yuwtbc3j1s83nDph8vzJLtranWs3sxpkmiWUnxEz1T0zfWqOutV0C2h7_xCp3FL3FYMH5WRMxwZUExXVTlDuKXJag"/>
+<span class="absolute top-3 right-3 px-2 py-1 bg-yellow-500 text-white text-[10px] font-bold rounded uppercase tracking-wider">Misleading</span>
+</div>
+<div class="p-4">
+<h3 class="font-bold text-base leading-snug mb-3">Major tech company announces full remote work policy for all staff</h3>
+<div class="flex items-center justify-between pt-3 border-t border-card-border">
+<div class="flex flex-col">
+<span class="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Echo Score</span>
+<span class="text-base font-bold text-yellow-600">45/100</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">share</span>
+</button>
+<div class="w-10 h-10 rounded-full border-2 border-yellow-200 bg-yellow-50 flex items-center justify-center">
+<span class="material-symbols-outlined text-yellow-600">warning</span>
+</div>
+</div>
+</div>
+</div>
+</article>
+</div>
+</section>
+</main>
+<!-- Updated Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-card-border px-2 pb-safe-area-inset-bottom">
+<div class="flex items-center justify-around h-16 max-w-lg mx-auto">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined fill-1">home</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">forum</span>
+<span class="text-[10px] font-medium uppercase tracking-tighter">Forum</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">qr_code_scanner</span>
+<span class="text-[10px] font-medium uppercase tracking-tighter">Scan</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="text-[10px] font-medium uppercase tracking-tighter">History</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium uppercase tracking-tighter">Profile</span>
+</a>
+</div>
+</nav>
+</body></html>

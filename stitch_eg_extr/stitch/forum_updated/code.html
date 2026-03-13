@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1d468b",
+                        "accent": "#d4b483",
+                        "background": "#fdfbf7", // Off-white/beige tint
+                        "surface": "#ffffff",
+                        "beige-light": "#f5f0e6",
+                        "border-beige": "#eaddca",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            min-height: 100dvh;
+        }
+    </style>
+</head>
+<body class="bg-background font-display text-slate-800 min-h-screen flex flex-col">
+<!-- Header -->
+<header class="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border-beige px-4 py-3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">menu</span>
+<h1 class="text-lg font-bold tracking-tight text-primary uppercase">EchoGuard</h1>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined">search</span>
+<div class="size-8 rounded-full bg-beige-light border border-border-beige flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-sm text-primary">person</span>
+</div>
+</div>
+</header>
+<!-- Filter & Sort Section -->
+<div class="px-4 py-3 flex items-center justify-between bg-surface border-b border-border-beige">
+<div class="relative">
+<select class="appearance-none bg-transparent border-none py-1 pl-0 pr-8 text-sm font-semibold focus:ring-0 outline-none cursor-pointer">
+<option>Trending</option>
+<option>Newest</option>
+<option>Most Debated</option>
+</select>
+<span class="material-symbols-outlined absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-lg">expand_more</span>
+</div>
+<div class="flex gap-2">
+<button class="p-1 text-slate-500">
+<span class="material-symbols-outlined text-xl">grid_view</span>
+</button>
+</div>
+</div>
+<!-- Feed Content -->
+<main class="flex-1 space-y-px pb-24">
+<!-- Post Card 1 (Streamlined Blog/Reddit Style) -->
+<article class="bg-surface border-b border-border-beige">
+<div class="p-4">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-gradient-to-br from-primary to-accent" data-alt="User avatar"></div>
+<div class="flex items-center gap-1.5">
+<span class="text-xs font-bold text-slate-900">u/neon_surfer</span>
+<span class="text-[10px] text-slate-500">• 2h ago</span>
+</div>
+</div>
+<span class="text-[9px] font-bold px-2 py-0.5 rounded bg-primary/5 text-primary border border-primary/10 uppercase tracking-tighter">Opinion</span>
+</div>
+<h2 class="text-base font-bold mb-1.5 leading-snug">New EchoGuard v2.1 Update! Teal calibration is insane.</h2>
+<p class="text-sm text-slate-600 mb-3 line-clamp-3">
+                    The latest firmware seems to improve the neon teal calibration significantly. My peripheral sensors are picking up 15% more range in low light. Anyone else seeing this boost?
+                </p>
+<!-- Media (Only shown when contextually relevant) -->
+<div class="aspect-video w-full rounded-lg bg-slate-100 mb-3 bg-cover bg-center border border-border-beige" data-alt="Interface screenshot" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD3yczok2ER7u4hIGP_jhUIwjAYF0DumYIXBv-nRWfsG3CQUTGsLu34d1wzRvgMSCGxQh9sdTsum7hljLm9_RCexD2x9IHmFz_4B6RKI1KpqgK9AtiVf6akx9OYeWorCIyJzXpqn76E-PdKW4vpZGkTGtUdNiNg7r0mOZBpEjuTI8JZo4gmDf7CXUyMH_T1tj-Rza-wxKjhLBDSNzMWQh3dEt9yudg4viNQNpxb3yUzUCMEBx0fSeuswAqE9SkkqfP3itAcNojGRw')"></div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-full border border-slate-100">
+<span class="material-symbols-outlined text-base text-slate-500">arrow_upward</span>
+<span class="text-xs font-bold">1.2k</span>
+<span class="material-symbols-outlined text-base text-slate-500">arrow_downward</span>
+</div>
+<div class="flex items-center gap-1.5 text-slate-500">
+<span class="material-symbols-outlined text-base">chat_bubble</span>
+<span class="text-xs font-bold">84</span>
+</div>
+</div>
+<div class="flex items-center gap-1.5 text-primary/70">
+<span class="material-symbols-outlined text-base">verified_user</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Fact Check</span>
+</div>
+</div>
+</div>
+</article>
+<!-- Post Card 2 (Text Only, No Image) -->
+<article class="bg-surface border-b border-border-beige">
+<div class="p-4">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-slate-200" data-alt="Default user avatar"></div>
+<div class="flex items-center gap-1.5">
+<span class="text-xs font-bold text-slate-900">u/cyber_sentinel</span>
+<span class="text-[10px] text-slate-500">• 5h ago</span>
+</div>
+</div>
+<span class="text-[9px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-tighter">Discussion</span>
+</div>
+<h2 class="text-base font-bold mb-1.5 leading-snug">Best shield configurations for Zone 7?</h2>
+<p class="text-sm text-slate-600 mb-4">
+                    Trying to optimize my setup for the high-frequency interference in the northern sectors. Should I prioritize spectral density or raw burst absorption?
+                </p>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-full border border-slate-100">
+<span class="material-symbols-outlined text-base text-slate-500">arrow_upward</span>
+<span class="text-xs font-bold">342</span>
+<span class="material-symbols-outlined text-base text-slate-500">arrow_downward</span>
+</div>
+<div class="flex items-center gap-1.5 text-slate-500">
+<span class="material-symbols-outlined text-base">chat_bubble</span>
+<span class="text-xs font-bold">12</span>
+</div>
+</div>
+<div class="flex items-center gap-1.5 text-slate-400">
+<span class="material-symbols-outlined text-base">history</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Pending</span>
+</div>
+</div>
+</div>
+</article>
+<!-- Post Card 3 (Simple Text) -->
+<article class="bg-surface border-b border-border-beige">
+<div class="p-4">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-accent/20 border border-accent/40" data-alt="User avatar"></div>
+<div class="flex items-center gap-1.5">
+<span class="text-xs font-bold text-slate-900">u/shield_maiden</span>
+<span class="text-[10px] text-slate-500">• 8h ago</span>
+</div>
+</div>
+<span class="text-[9px] font-bold px-2 py-0.5 rounded bg-accent/10 text-slate-700 border border-accent/20 uppercase tracking-tighter">Tip</span>
+</div>
+<h2 class="text-base font-bold mb-1.5 leading-snug">Quick tip for battery conservation</h2>
+<p class="text-sm text-slate-600 mb-4">
+                    If you disable the "Aura Sync" when in standby mode, you can squeeze an extra 4 hours of life from the v2 units.
+                </p>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-full border border-slate-100">
+<span class="material-symbols-outlined text-base text-slate-500">arrow_upward</span>
+<span class="text-xs font-bold">891</span>
+<span class="material-symbols-outlined text-base text-slate-500">arrow_downward</span>
+</div>
+<div class="flex items-center gap-1.5 text-slate-500">
+<span class="material-symbols-outlined text-base">chat_bubble</span>
+<span class="text-xs font-bold">45</span>
+</div>
+</div>
+</div>
+</div>
+</article>
+</main>
+<!-- Floating Action Button -->
+<button class="fixed bottom-24 right-6 size-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center z-40">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-surface border-t border-border-beige px-6 py-2 pb-6 flex items-center justify-between z-50">
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined font-variation-fill">forum</span>
+<span class="text-[10px] font-medium">Forum</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">qr_code_scanner</span>
+<span class="text-[10px] font-medium">Scan</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="text-[10px] font-medium">History</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</a>
+</nav>
+</body></html>

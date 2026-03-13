@@ -1,0 +1,441 @@
+EchoGuard v2
+Backend & AI System PRD (For Antigravity)
+Project Name
+
+EchoGuard
+
+Tagline
+
+Protecting Truth in the Age of Opinions
+
+1. Project Overview
+
+EchoGuard is an AI-powered credibility analysis platform that evaluates the reliability of claims, opinions, and viral information circulating on social media.
+
+The system analyzes text, images, and URLs and produces a credibility score called the Echo Score.
+
+Unlike traditional LLM fact-checkers, EchoGuard uses a multi-source verification pipeline that gathers real evidence before producing a verdict.
+
+The platform consists of:
+
+Frontend: Flutter mobile app (already generated via Stitch)
+Backend: AI verification pipeline and APIs
+Database: User posts, history, and discussions
+
+The backend must integrate seamlessly with the existing Flutter UI screens.
+
+2. Core Functional Requirements
+
+The backend must support the following core features.
+
+Credibility analysis of user input
+
+Claim extraction from text or images
+
+Verification using external fact-check sources
+
+Echo Score calculation
+
+Evidence-based AI reasoning
+
+Forum post storage and retrieval
+
+Analysis history storage
+
+User profile statistics
+
+3. Input Types
+
+The analysis system must accept the following inputs.
+
+Text input
+
+Example:
+User pastes a claim or opinion.
+
+Image input
+
+Example:
+Screenshot of a social media post.
+
+The system must perform OCR to extract text.
+
+URL input
+
+Example:
+User pastes a news article or webpage.
+
+The system must scrape page text and analyze it.
+
+4. Output Requirements
+
+The system must return a structured JSON response used by the Flutter Analysis screen.
+
+Example response format:
+
+{
+  "echo_score": 72,
+  "verdict": "Mostly Reliable",
+  "classification": "Fact",
+  "claims": [
+    {
+      "claim_text": "Global temperatures reached record highs in July 2023",
+      "claim_verdict": "Verified",
+      "confidence": 91,
+      "sources": [
+        {
+          "source": "Reuters Fact Check",
+          "type": "Fact Check"
+        },
+        {
+          "source": "Wikipedia",
+          "type": "Knowledge Base"
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "truth_probability": 85,
+    "source_credibility": 40,
+    "bias_detection": 60,
+    "manipulation_risk": 12
+  },
+  "ai_reasoning": "Multiple verified sources confirm this claim."
+}
+5. AI Verification Architecture
+
+The system must implement a 3-source credibility pipeline.
+
+Each source contributes to the final Echo Score.
+
+Source weights:
+
+Google Fact Check Tools API — 50%
+
+Wikipedia REST API — 30%
+
+DuckDuckGo Instant Answers — 20%
+
+The AI model must only synthesize the evidence gathered from these sources.
+
+The model must not fabricate sources.
+
+6. Analysis Pipeline
+
+Step 1 — Input processing
+
+Accept text, image, or URL.
+
+If image input:
+
+Run OCR using Tesseract or equivalent.
+
+If URL input:
+
+Scrape article text.
+
+Step 2 — Claim extraction
+
+Use NLP to detect factual claims in the text.
+
+Example:
+
+Input text:
+"I heard that drinking lemon water cures cancer."
+
+Extracted claim:
+"Lemon water cures cancer."
+
+Step 3 — Fact Check API
+
+Query Google Fact Check Tools API with the extracted claim.
+
+Retrieve:
+
+fact-check rating
+publisher
+explanation
+date
+
+Step 4 — Wikipedia verification
+
+Extract entities from the claim.
+
+Query Wikipedia REST API.
+
+Check for contradictions or confirmations.
+
+Step 5 — DuckDuckGo lookup
+
+Use DuckDuckGo Instant Answers API for contextual information.
+
+This helps verify claims not covered in fact-check databases.
+
+Step 6 — Evidence packet creation
+
+Compile all gathered sources into a structured evidence set.
+
+Example:
+
+Evidence Packet
+
+FC1: Reuters Fact Check — False
+FC2: AFP Fact Check — Misleading
+
+W1: Wikipedia — contradicts claim
+
+DDG1: DuckDuckGo summary
+
+Step 7 — AI synthesis
+
+Use Groq LLM or equivalent.
+
+Provide evidence packet in prompt.
+
+The AI must produce:
+
+claim verdict
+explanation
+source citations
+
+The AI must cite evidence using tags.
+
+Example:
+
+[FC1] Reuters Fact Check
+[W1] Wikipedia
+
+Step 8 — Echo Score calculation
+
+Echo Score must be calculated using weighted scoring.
+
+Formula:
+
+EchoScore =
+(FactCheckConfidence × 0.50)
++
+(WikipediaConsistency × 0.30)
++
+(ContextConfidence × 0.20)
+
+Normalize score between 0 and 100.
+
+7. API Endpoints
+
+The backend must expose the following endpoints.
+
+POST /analyze
+
+Purpose:
+Analyze user input and return Echo Score.
+
+Request body:
+
+{
+  "input_type": "text",
+  "content": "Claim text here"
+}
+
+Response:
+
+Echo Score JSON output.
+
+POST /scan-image
+
+Purpose:
+Process image and run OCR before analysis.
+
+POST /scan-url
+
+Purpose:
+Scrape webpage and analyze text.
+
+GET /trending-claims
+
+Returns viral claims analyzed recently.
+
+Used on Dashboard.
+
+GET /forum-posts
+
+Returns forum discussion posts.
+
+POST /create-post
+
+Creates new forum discussion.
+
+GET /history
+
+Returns analysis history for a user.
+
+GET /profile
+
+Returns user stats.
+
+8. Database Design
+
+Database: Firebase Firestore or equivalent.
+
+Collections required.
+
+Users
+
+Fields:
+
+user_id
+username
+email
+truth_score
+joined_date
+
+Posts
+
+Fields:
+
+post_id
+user_id
+title
+content
+echo_score
+classification
+timestamp
+
+Claims
+
+Fields:
+
+claim_id
+post_id
+claim_text
+verdict
+confidence
+sources
+
+History
+
+Fields:
+
+analysis_id
+user_id
+input_content
+input_type
+echo_score
+verdict
+timestamp
+
+9. OCR System
+
+Use Tesseract OCR.
+
+Pipeline:
+
+Image upload
+Text extraction
+Send text to analysis engine.
+
+10. URL Analysis
+
+Scrape webpage content.
+
+Extract main article text.
+
+Remove navigation elements and ads.
+
+Send cleaned text to claim extraction module.
+
+11. Forum Backend
+
+The forum must support:
+
+Post creation
+Comment threads
+Upvotes
+Sorting
+
+Sorting options:
+
+Trending
+Newest
+Most debated
+
+12. History Tracking
+
+Each time a user performs analysis:
+
+Save record in History collection.
+
+History screen displays:
+
+Past 24 hours
+Past week
+
+13. Profile Statistics
+
+Profile must compute:
+
+Total claims analyzed
+Verified contributions
+Accuracy rate
+Truth score
+
+14. Security Requirements
+
+Rate limit API usage.
+
+Prevent spam posting.
+
+Basic content moderation for harmful misinformation.
+
+15. Performance Requirements
+
+Average analysis time should be under 5 seconds.
+
+Cache results for repeated claims.
+
+Use asynchronous API calls for fact-check queries.
+
+16. Integration with Flutter UI
+
+The backend must connect with the following UI screens.
+
+Dashboard input analyzer
+
+Analysis results screen
+
+Forum discussion feed
+
+History page
+
+Profile page
+
+Scan interface
+
+All responses must match the UI layout generated by Stitch.
+
+17. Demo Requirements (Hackathon)
+
+The system must support the following demo scenario.
+
+User pastes a viral claim.
+
+System analyzes it.
+
+Echo Score appears.
+
+Evidence sources are displayed.
+
+User opens forum discussion.
+
+User scans screenshot.
+
+Instant fact-check popup appears.
+
+18. Key Innovation
+
+EchoGuard is not an AI opinion system.
+
+It is a verification-first credibility engine.
+
+It gathers evidence from multiple trusted sources before generating a verdict.
+
+This ensures transparency and reduces hallucination.

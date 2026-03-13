@@ -1,0 +1,183 @@
+<html><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1d468b",
+                        "accent": "#d4a373", // Beige accent for THEME_9 feel
+                        "background-light": "#fdfaf6", // Off-white/cream
+                        "background-dark": "#121620",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { 
+                        "DEFAULT": "0.5rem", 
+                        "lg": "0.5rem", 
+                        "xl": "0.75rem", 
+                        "full": "9999px" 
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(212, 163, 115, 0.08);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(29, 70, 139, 0.1);
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background-light font-display text-slate-800 min-h-screen flex flex-col">
+<!-- Header -->
+<header class="sticky top-0 z-50 flex items-center bg-background-light/90 backdrop-blur-md p-4 justify-between border-b border-slate-200">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-600">arrow_back</span>
+<h1 class="text-lg font-bold tracking-tight text-slate-900">Profile</h1>
+</div>
+<button class="flex items-center justify-center rounded-lg h-10 w-10 bg-primary/5 text-primary">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</header>
+<main class="flex-1 overflow-y-auto pb-24">
+<!-- Profile Top Section -->
+<div class="flex flex-col items-center py-8 px-4">
+<div class="relative">
+<div class="size-32 rounded-full border-4 border-accent/20 p-1 bg-gradient-to-tr from-primary/20 to-accent/40">
+<img alt="User Profile Avatar" class="w-full h-full rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbrmWBAdGyRxV6msneTcj1l5PlRE2nJQsUjNPmg6jiqq8XR_y8hWYfKRkkYIFi9NCubQ_e0hOczEZeiIax-1X2MtlTmUud582ehqv5BX6Wo16yfpxcDFa6MKMSPHXIxRmqwxrCRcE9h_PozWGpjrSHE6FhMkemykeZOHYhFDdk7Be8QB46KL2yTxlCgXyyjsjGmpNp1nSdFYT6esckqq087CDz61_k82-54dX9nig8YdYXSPls5UlBb3rMjyW5kQb7r80OJyKg1A"/>
+</div>
+<div class="absolute bottom-1 right-1 bg-accent text-white rounded-full p-1 border-2 border-background-light">
+<span class="material-symbols-outlined text-sm font-bold">verified</span>
+</div>
+</div>
+<div class="mt-4 text-center">
+<h2 class="text-2xl font-bold text-slate-900">@Alex_EchoGuard</h2>
+<div class="flex items-center justify-center gap-2 mt-1">
+<span class="text-primary text-sm font-semibold uppercase tracking-wider">Elite Verifier</span>
+<span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+<p class="text-slate-500 text-sm">Joined March 2024</p>
+</div>
+</div>
+</div>
+<!-- Reputation Stats -->
+<div class="grid grid-cols-3 gap-3 px-4 mb-8">
+<div class="glass-panel rounded-lg p-4 flex flex-col items-center text-center border border-slate-200 shadow-sm bg-white/50">
+<p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Truth Score</p>
+<p class="text-xl font-bold text-primary">984</p>
+<p class="text-[10px] text-emerald-600 font-bold mt-1">+12</p>
+</div>
+<div class="glass-panel rounded-lg p-4 flex flex-col items-center text-center border border-slate-200 shadow-sm bg-white/50">
+<p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Verified</p>
+<p class="text-xl font-bold text-primary">152</p>
+<p class="text-[10px] text-emerald-600 font-bold mt-1">+5</p>
+</div>
+<div class="glass-panel rounded-lg p-4 flex flex-col items-center text-center border border-slate-200 shadow-sm bg-white/50">
+<p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Accuracy</p>
+<p class="text-xl font-bold text-primary">99.2%</p>
+<p class="text-[10px] text-emerald-600 font-bold mt-1">+0.1%</p>
+</div>
+</div>
+<!-- Activity Section -->
+<div class="px-4 mb-8">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-lg font-bold text-slate-900">Recent Activity</h3>
+<button class="text-primary text-sm font-semibold">View All</button>
+</div>
+<div class="space-y-3">
+<div class="flex gap-4 p-4 rounded-lg bg-white border border-slate-200 shadow-sm">
+<div class="size-10 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-emerald-600">fact_check</span>
+</div>
+<div class="flex flex-col">
+<p class="text-sm font-semibold text-slate-900">Fact-checked deepfake video</p>
+<p class="text-xs text-slate-500 mt-1">Confirmed 'Manipulated Media' regarding Election Tech claims.</p>
+<p class="text-[10px] text-slate-400 mt-2 font-medium uppercase tracking-tighter">2 hours ago</p>
+</div>
+</div>
+<div class="flex gap-4 p-4 rounded-lg bg-white border border-slate-200 shadow-sm">
+<div class="size-10 rounded-lg bg-primary/5 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary">post_add</span>
+</div>
+<div class="flex flex-col">
+<p class="text-sm font-semibold text-slate-900">New Claim Analyzed</p>
+<p class="text-xs text-slate-500 mt-1">Analyzed statement by @GlobalNews about climate projections.</p>
+<p class="text-[10px] text-slate-400 mt-2 font-medium uppercase tracking-tighter">Yesterday</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Settings Section -->
+<div class="px-4 pb-8">
+<h3 class="text-lg font-bold text-slate-900 mb-4">Preferences</h3>
+<div class="rounded-lg overflow-hidden border border-slate-200 bg-white shadow-sm">
+<div class="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-500">language</span>
+<span class="text-sm font-medium">Language</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-sm text-slate-400">English</span>
+<span class="material-symbols-outlined text-slate-300">chevron_right</span>
+</div>
+</div><div class="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors border-t border-slate-100">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-500">dark_mode</span>
+<span class="text-sm font-medium">Dark Mode</span>
+</div>
+<div class="w-10 h-6 bg-slate-200 rounded-full relative flex items-center px-1">
+<div class="size-4 bg-white rounded-full shadow-sm"></div>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 border-t border-slate-100 hover:bg-slate-50 transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-500">notifications_active</span>
+<span class="text-sm font-medium">Notifications</span>
+</div>
+<span class="material-symbols-outlined text-slate-300">chevron_right</span>
+</div>
+<div class="flex items-center justify-between p-4 border-t border-slate-100 hover:bg-slate-50 transition-colors">
+<div class="flex items-center gap-3 text-red-500">
+<span class="material-symbols-outlined">logout</span>
+<span class="text-sm font-medium">Logout</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white/90 backdrop-blur-lg px-2 pb-6 pt-2 flex justify-between items-center z-50">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium uppercase tracking-tighter">Home</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">forum</span>
+<span class="text-[10px] font-medium uppercase tracking-tighter">Forum</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
+<div class="bg-primary size-10 rounded-full flex items-center justify-center -mt-8 shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-white">qr_code_scanner</span>
+</div>
+<span class="text-[10px] font-medium uppercase tracking-tighter">Scan</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="text-[10px] font-medium uppercase tracking-tighter">History</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Profile</span>
+</a>
+</nav>
+</body></html>

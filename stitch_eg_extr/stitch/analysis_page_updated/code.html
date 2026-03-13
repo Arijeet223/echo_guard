@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>EchoGuard Analysis Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1d468b",
+                        "accent": "#c5a47e",
+                        "background-light": "#fdfbf7",
+                        "background-beige": "#f5f0e6",
+                        "surface": "#ffffff",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gauge-conic {
+            transition: background 1s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-background-light text-slate-900 font-display min-h-screen pb-24 relative overflow-x-hidden">
+
+<!-- Header Navigation -->
+<header class="sticky top-0 z-50 bg-background-light/90 backdrop-blur-md border-b border-background-beige">
+    <div class="flex items-center p-4 justify-between max-w-2xl mx-auto">
+        <button onclick="window.history.back()" class="text-slate-600 hover:text-primary transition-colors">
+            <span class="material-symbols-outlined">arrow_back</span>
+        </button>
+        <h1 class="text-lg font-bold tracking-tight text-primary">EchoGuard Analysis</h1>
+        <button class="text-slate-600 hover:text-primary transition-colors" onclick="shareAnalysis()">
+            <span class="material-symbols-outlined">share</span>
+        </button>
+    </div>
+</header>
+
+<main class="max-w-2xl mx-auto p-4 space-y-6" id="main-content">
+    
+    <!-- Loading State -->
+    <div id="loading-state" class="flex flex-col items-center justify-center py-20 animate-pulse">
+        <div class="w-20 h-20 border-4 border-background-beige border-t-primary rounded-full animate-spin mb-6"></div>
+        <h2 class="text-xl font-bold text-slate-800 mb-2">Analyzing Content...</h2>
+        <p class="text-sm text-slate-500 text-center max-w-xs">Cross-referencing trusted sources and detecting emotional manipulation patterns.</p>
+    </div>
+
+    <!-- Results State (Hidden initially) -->
+    <div id="results-state" class="hidden flex flex-col gap-6">
+
+        <!-- Action Buttons -->
+        <div class="flex justify-end mb-2">
+            <button onclick="speakAnalysis()" id="speakBtn" class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-bold rounded-full shadow hover:bg-primary/90 transition-colors">
+                <span class="material-symbols-outlined text-sm">volume_up</span> Speak Analysis
+            </button>
+        </div>
+
+        <!-- Credibility Score Card -->
+        <section class="bg-surface border border-background-beige rounded-xl p-6 shadow-sm flex flex-col items-center text-center relative overflow-hidden">
+            <div id="scoreLabel" class="absolute top-4 left-4 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider"></div>
+            
+            <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6">Credibility Score</h3>
+            
+            <div id="gaugeContainer" class="relative flex items-center justify-center w-48 h-48 rounded-full mb-4 gauge-conic border-8 border-transparent">
+                <div class="absolute inset-2 bg-surface rounded-full flex flex-col items-center justify-center shadow-inner">
+                    <span id="credibilityScore" class="text-5xl font-extrabold text-slate-800"></span><span class="text-lg text-slate-500 font-bold ml-1">%</span>
+                </div>
+            </div>
+            
+            <p class="text-red-500 font-bold mb-2">Fake Probability: <span id="fakeProbability"></span>%</p>
+            
+            <details class="w-full mt-4 bg-background-light p-3 rounded-lg text-sm text-left">
+                <summary class="font-semibold text-slate-700 cursor-pointer flex justify-between items-center outline-none">
+                    Why did we give this score?
+                    <span class="material-symbols-outlined text-slate-400">expand_more</span>
+                </summary>
+                <p class="mt-2 text-slate-600 leading-relaxed" id="aiReasoning">
+                    <!-- AI reasoning populates here -->
+                </p>
+            </details>
+        </section>
+
+        <!-- Metrics Grid (Emotional/Manipulative, Bias, Clickbait, Source) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- Emotional/Manipulative Language Warning -->
+            <section class="bg-surface border border-background-beige rounded-xl p-5 shadow-sm">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-red-500">campaign</span>
+                        <h3 class="text-sm font-bold text-slate-800">Manipulation Alert</h3>
+                    </div>
+                    <span id="manipulationBadge" class="px-2 py-1 text-[10px] font-bold uppercase rounded bg-slate-100 text-slate-600">N/A</span>
+                </div>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-slate-500">Dominant Emotion</span>
+                        <span class="text-sm font-bold capitalize" id="dominantEmotion"></span>
+                    </div>
+                    <div class="w-full bg-background-beige rounded-full h-1.5 mb-2">
+                        <div id="emotionBar" class="bg-red-500 h-1.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <div class="pt-2 border-t border-background-beige">
+                        <p class="text-[10px] text-slate-500 uppercase font-semibold mb-1">Detected Triggers</p>
+                        <div id="triggerWords" class="flex flex-wrap gap-1.5">
+                            <!-- trigger words here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bias Meter -->
+            <section class="bg-surface border border-background-beige rounded-xl p-5 shadow-sm">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-orange-500">balance</span>
+                        <h3 class="text-sm font-bold text-slate-800">Bias Meter</h3>
+                    </div>
+                    <span id="biasBadge" class="px-2 py-1 text-[10px] font-bold uppercase rounded bg-slate-100 text-slate-600">N/A</span>
+                </div>
+                <div class="space-y-3 text-center">
+                    <p class="text-2xl font-bold uppercase mt-2" id="biasLeaning"></p>
+                    <p class="text-xs text-slate-500">Confidence: <span id="biasConfidence" class="font-bold"></span>%</p>
+                    
+                    <div class="w-full flex h-2 rounded-full overflow-hidden bg-background-beige mt-4">
+                        <div class="bg-blue-500 flex-1 border-r border-white"></div>
+                        <div class="bg-slate-300 w-1/4 border-r border-white"></div>
+                        <div class="bg-red-500 flex-1"></div>
+                    </div>
+                    
+                    <p id="propagandaFlag" class="hidden mt-4 text-xs font-bold text-red-600 bg-red-50 py-1 px-2 rounded border border-red-100 inline-flex items-center mx-auto">
+                        <span class="material-symbols-outlined text-[14px] mr-1">flag</span>
+                        Propaganda pattern likely
+                    </p>
+                </div>
+            </section>
+
+            <!-- Source Reliability -->
+            <section class="bg-surface border border-background-beige rounded-xl p-5 shadow-sm">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-emerald-600">verified</span>
+                        <h3 class="text-sm font-bold text-slate-800">Source Reliability</h3>
+                    </div>
+                    <span id="sourceBadge" class="px-2 py-1 text-[10px] font-bold uppercase rounded bg-slate-100 text-slate-600">N/A</span>
+                </div>
+                <div class="flex flex-col gap-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-500">Domain</span>
+                        <span class="font-bold text-slate-800" id="sourceDomain"></span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-500">Trust Score</span>
+                        <span class="font-bold text-emerald-600 text-lg" id="sourceScore"></span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Clickbait Detection -->
+            <section class="bg-surface border border-background-beige rounded-xl p-5 shadow-sm">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-pink-500">ads_click</span>
+                        <h3 class="text-sm font-bold text-slate-800">Clickbait Scan</h3>
+                    </div>
+                    <span id="clickbaitBadge" class="px-2 py-1 text-[10px] font-bold uppercase rounded text-white hidden"></span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex flex-col">
+                        <span class="text-2xl font-bold uppercase tracking-wider" id="isClickbait"></span>
+                        <span class="text-xs text-slate-500">Probability: <span id="clickbaitProb" class="font-bold"></span>%</span>
+                    </div>
+                    <div class="w-full max-w-[50%] bg-background-beige rounded-full h-2">
+                        <div id="clickbaitBar" class="h-2 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Depolarisation / Balanced Perspectives Card -->
+        <section class="bg-surface border border-background-beige rounded-xl p-5 shadow-sm mb-2">
+            <div class="flex items-center gap-2 mb-4 border-b border-background-beige pb-3">
+                <span class="material-symbols-outlined text-primary">diversity_3</span>
+                <h3 class="text-sm font-bold text-slate-800">Balanced Perspectives</h3>
+            </div>
+            <div id="balancedViewsList" class="space-y-3">
+                <!-- Articles injected here -->
+            </div>
+        </section>
+
+        <!-- User Feedback -->
+        <section class="bg-background-light border border-background-beige rounded-xl p-5 shadow-inner text-center">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Rate this analysis</p>
+            <div class="flex justify-center flex-wrap gap-2">
+                <button onclick="sendFeedback('Accurate')" class="flex-1 min-w-[30%] py-2 px-3 bg-white border border-slate-200 text-slate-600 text-[13px] font-semibold rounded-lg hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all">
+                    Accurate
+                </button>
+                <button onclick="sendFeedback('Misleading')" class="flex-1 min-w-[30%] py-2 px-3 bg-white border border-slate-200 text-slate-600 text-[13px] font-semibold rounded-lg hover:border-red-500 hover:text-red-600 hover:bg-red-50 transition-all">
+                    Misleading
+                </button>
+                <button onclick="sendFeedback('Unclear')" class="flex-1 min-w-[30%] py-2 px-3 bg-white border border-slate-200 text-slate-600 text-[13px] font-semibold rounded-lg hover:border-slate-400 hover:bg-slate-50 transition-all">
+                    Unclear
+                </button>
+            </div>
+            <p id="feedbackThanks" class="text-xs text-primary font-semibold mt-3 hidden">Thank you for your feedback!</p>
+        </section>
+
+    </div>
+</main>
+
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-surface border-t border-background-beige z-50">
+    <div class="flex max-w-2xl mx-auto px-4 pb-safe-area-inset-bottom pt-2 h-16">
+        <a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 hover:text-primary transition-colors" href="../dashboard_updated/code.html">
+            <span class="material-symbols-outlined">home</span>
+            <p class="text-[10px] font-medium uppercase tracking-tighter">Home</p>
+        </a>
+        <a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+            <span class="material-symbols-outlined">forum</span>
+            <p class="text-[10px] font-medium uppercase tracking-tighter">Forum</p>
+        </a>
+        <a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="#">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">shield</span>
+            <p class="text-[10px] font-bold uppercase tracking-tighter">Scan</p>
+        </a>
+        <a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+            <span class="material-symbols-outlined">history</span>
+            <p class="text-[10px] font-medium uppercase tracking-tighter">History</p>
+        </a>
+        <a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+            <span class="material-symbols-outlined">person</span>
+            <p class="text-[10px] font-medium uppercase tracking-tighter">Profile</p>
+        </a>
+    </div>
+</nav>
+
+<script>
+    // Extract query param
+    const urlParams = new URLSearchParams(window.location.search);
+    const inputText = urlParams.get('text') || "Analyzing demo default text...";
+
+    // Simulated API Response based on PRD
+    const mockApiResponse = {
+        "credibility": 12.4, // Fake implies credibility is low
+        "fake_probability": 87.6,
+        "manipulation": { 
+            "level": "HIGH", 
+            "emotion": "surprise", 
+            "intensity": 78.4, 
+            "keywords": ["shocking", "exposed", "they don't want you to know"] 
+        },
+        "bias": { 
+            "leaning": "RIGHT", 
+            "confidence": 82.6, 
+            "propaganda_flag": true 
+        },
+        "source_reliability": { 
+            "level": "MEDIUM", 
+            "score": 45, 
+            "domain": "unknown-blog.net" 
+        },
+        "clickbait": { 
+            "is_clickbait": true, 
+            "probability": 91.2 
+        },
+        "balanced_views": [
+            { "title": "No evidence of widespread claims around recent policy", "source": "Reuters", "url": "#" },
+            { "title": "Fact Check: The truth about the viral post", "source": "BBC", "url": "#" },
+            { "title": "Official Statement on recent controversies", "source": "AP News", "url": "#" }
+        ],
+        "ai_reasoning": "Our multi-signal analysis detected significant sensationalism, low source reliability, and confirmed contradictions from established factual datasets. The emotional tone highly suggests intent to manipulate."
+    };
+
+    // Simulate Network Request Delay
+    setTimeout(() => {
+        document.getElementById('loading-state').classList.add('hidden');
+        document.getElementById('results-state').classList.remove('hidden');
+        populateDashboard(mockApiResponse);
+    }, 1500);
+
+    function getScoreColor(score) {
+        if (score >= 70) return { main: '#10b981', bg: 'bg-emerald-500', text: 'text-emerald-600', labelBg: 'bg-emerald-100', labelStr: 'Verified' };
+        if (score >= 40) return { main: '#f59e0b', bg: 'bg-yellow-500', text: 'text-yellow-600', labelBg: 'bg-yellow-100', labelStr: 'Misleading' };
+        return { main: '#ef4444', bg: 'bg-red-500', text: 'text-red-600', labelBg: 'bg-red-100', labelStr: 'High Risk' };
+    }
+
+    function populateDashboard(data) {
+        // 1. Credibility Score
+        const credEl = document.getElementById('credibilityScore');
+        credEl.textContent = data.credibility;
+        document.getElementById('fakeProbability').textContent = data.fake_probability;
+        document.getElementById('aiReasoning').textContent = data.ai_reasoning;
+
+        const colorMap = getScoreColor(data.credibility);
+        const gaugeConic = `conic-gradient(from 180deg, ${colorMap.main} 0%, ${colorMap.main} ${data.credibility}%, #f5f0e6 ${data.credibility}% 100%)`;
+        document.getElementById('gaugeContainer').style.background = gaugeConic;
+        
+        const labelEl = document.getElementById('scoreLabel');
+        labelEl.textContent = colorMap.labelStr;
+        labelEl.className += ` ${colorMap.labelBg} ${colorMap.text}`;
+
+        credEl.className = `text-5xl font-extrabold ${colorMap.text}`;
+
+        // 2. Emotional / Manipulative Warning
+        const manipBadge = document.getElementById('manipulationBadge');
+        manipBadge.textContent = data.manipulation.level;
+        if(data.manipulation.level === 'HIGH') {
+            manipBadge.className = 'px-2 py-1 text-[10px] font-bold uppercase rounded bg-red-100 text-red-700';
+            document.getElementById('emotionBar').className = 'bg-red-500 h-1.5 rounded-full duration-500 ease-out transition-all';
+        } else if (data.manipulation.level === 'MEDIUM') {
+            manipBadge.className = 'px-2 py-1 text-[10px] font-bold uppercase rounded bg-orange-100 text-orange-700';
+            document.getElementById('emotionBar').className = 'bg-orange-500 h-1.5 rounded-full duration-500 ease-out transition-all';
+        }
+
+        document.getElementById('dominantEmotion').textContent = `${data.manipulation.emotion} (${data.manipulation.intensity}%)`;
+        setTimeout(() => {
+            document.getElementById('emotionBar').style.width = `${data.manipulation.intensity}%`;
+        }, 100);
+        
+        const triggerContainer = document.getElementById('triggerWords');
+        data.manipulation.keywords.forEach(word => {
+            const span = document.createElement('span');
+            span.className = 'px-2 py-0.5 bg-background-light border border-slate-200 rounded text-xs text-slate-600';
+            span.textContent = `"${word}"`;
+            triggerContainer.appendChild(span);
+        });
+
+        // 3. Bias Meter
+        const biasBadge = document.getElementById('biasBadge');
+        biasBadge.textContent = data.bias.leaning;
+        if(data.bias.leaning === 'RIGHT' || data.bias.leaning === 'LEFT') {
+            biasBadge.className = 'px-2 py-1 text-[10px] font-bold uppercase rounded bg-orange-100 text-orange-700';
+        } else {
+            biasBadge.className = 'px-2 py-1 text-[10px] font-bold uppercase rounded bg-emerald-100 text-emerald-700';
+        }
+        document.getElementById('biasLeaning').textContent = `${data.bias.leaning} LEANING`;
+        document.getElementById('biasConfidence').textContent = data.bias.confidence;
+        if(data.bias.propaganda_flag) {
+            document.getElementById('propagandaFlag').classList.remove('hidden');
+        }
+
+        // 4. Source Reliability
+        const sourceBadge = document.getElementById('sourceBadge');
+        sourceBadge.textContent = data.source_reliability.level;
+        const sLevel = data.source_reliability.level;
+        const sourceScore = document.getElementById('sourceScore');
+        if(sLevel === 'HIGH') { 
+            sourceBadge.className = 'px-2 py-1 text-[10px] font-bold uppercase rounded bg-emerald-100 text-emerald-700';
+            sourceScore.className = 'font-bold text-emerald-600 text-lg';
+        }
+        else if(sLevel === 'MEDIUM') { 
+            sourceBadge.className = 'px-2 py-1 text-[10px] font-bold uppercase rounded bg-yellow-100 text-yellow-700'; 
+            sourceScore.className = 'font-bold text-yellow-600 text-lg';
+        }
+        else { 
+            sourceBadge.className = 'px-2 py-1 text-[10px] font-bold uppercase rounded bg-red-100 text-red-700'; 
+            sourceScore.className = 'font-bold text-red-600 text-lg';
+        }
+
+        document.getElementById('sourceDomain').textContent = data.source_reliability.domain;
+        sourceScore.textContent = `${data.source_reliability.score}/100`;
+
+        // 5. Clickbait Detection
+        const cbBadge = document.getElementById('clickbaitBadge');
+        cbBadge.classList.remove('hidden');
+        if(data.clickbait.is_clickbait) {
+            cbBadge.textContent = 'Detected';
+            cbBadge.className = 'px-2 py-1 text-[10px] font-bold uppercase rounded bg-red-500 text-white shadow-sm';
+            document.getElementById('isClickbait').textContent = 'YES';
+            document.getElementById('isClickbait').className = 'text-2xl font-black tracking-wider text-red-600';
+            document.getElementById('clickbaitBar').className = 'h-full bg-red-500 rounded-full transition-all duration-500 ease-out';
+        } else {
+            cbBadge.textContent = 'None';
+            cbBadge.className = 'px-2 py-1 text-[10px] font-bold uppercase rounded bg-emerald-500 text-white shadow-sm';
+            document.getElementById('isClickbait').textContent = 'NO';
+            document.getElementById('isClickbait').className = 'text-2xl font-black tracking-wider text-emerald-600';
+            document.getElementById('clickbaitBar').className = 'h-full bg-emerald-500 rounded-full transition-all duration-500 ease-out';
+        }
+        document.getElementById('clickbaitProb').textContent = data.clickbait.probability;
+        setTimeout(() => {
+            document.getElementById('clickbaitBar').style.width = `${data.clickbait.probability}%`;
+        }, 100);
+
+        // 6. Depolarisation / Balanced Views
+        const viewsContainer = document.getElementById('balancedViewsList');
+        data.balanced_views.forEach(v => {
+            const el = document.createElement('a');
+            el.href = v.url;
+            el.className = 'block p-3 bg-background-light hover:bg-white rounded-lg border border-background-beige transition-colors group cursor-pointer shadow-sm';
+            el.innerHTML = `
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">${v.source}</p>
+                        <p class="text-xs sm:text-sm text-slate-700 font-medium group-hover:text-primary transition-colors leading-snug">${v.title}</p>
+                    </div>
+                    <span class="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors text-base mt-2">open_in_new</span>
+                </div>
+            `;
+            viewsContainer.appendChild(el);
+        });
+    }
+
+    // TTS Logic
+    const synth = window.speechSynthesis;
+    let isSpeaking = false;
+
+    function speakAnalysis() {
+        if(isSpeaking) {
+            synth.cancel();
+            document.getElementById('speakBtn').innerHTML = '<span class="material-symbols-outlined text-sm">volume_up</span> Speak Analysis';
+            isSpeaking = false;
+            return;
+        }
+
+        const data = mockApiResponse;
+        const textToSpeak = `EchoGuard Analysis Complete. Credibility score is ${data.credibility} percent, with a fake probability of ${data.fake_probability} percent. 
+        Manipulation alert is ${data.manipulation.level}, dominant emotion detected is ${data.manipulation.emotion}. 
+        Bias meter reads ${data.bias.leaning} leaning. 
+        Clickbait is ${data.clickbait.is_clickbait ? 'detected' : 'not detected'}. 
+        ${data.ai_reasoning}`;
+
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.rate = 1.0;
+        
+        utterance.onend = () => {
+            isSpeaking = false;
+            document.getElementById('speakBtn').innerHTML = '<span class="material-symbols-outlined text-sm">volume_up</span> Speak Analysis';
+        };
+
+        synth.speak(utterance);
+        isSpeaking = true;
+        document.getElementById('speakBtn').innerHTML = '<span class="material-symbols-outlined text-sm">stop_circle</span> Stop Reading';
+    }
+
+    // Feedback
+    function sendFeedback(type) {
+        document.getElementById('feedbackThanks').textContent = `Recorded as ${type}. Thank you for your feedback!`;
+        document.getElementById('feedbackThanks').classList.remove('hidden');
+        // Add actual POST to /feedback here
+    }
+
+    // Sharing
+    function shareAnalysis() {
+        if (navigator.share) {
+            navigator.share({
+                title: 'EchoGuard Analysis',
+                text: 'Check out this credibility analysis on EchoGuard.',
+                url: window.location.href,
+            }).catch(console.error);
+        } else {
+            alert('Share feature not available on your browser. Copy the URL instead!');
+        }
+    }
+</script>
+</body>
+</html>
