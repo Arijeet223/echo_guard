@@ -59,7 +59,7 @@
 <h1 class="text-xl font-bold tracking-tight text-primary">History</h1>
 </div>
 <div class="flex gap-1">
-<button class="p-2 rounded-full hover:bg-black/5 text-slate-500">
+<button class="p-2 rounded-full hover:bg-black/5 text-slate-500" onclick="toggleSearch()">
 <span class="material-symbols-outlined">search</span>
 </button>
 <button class="p-2 rounded-full hover:bg-black/5 text-slate-500">
@@ -68,125 +68,218 @@
 </div>
 </div>
 </header>
+
+<!-- Search Bar -->
+<div id="search-container" class="hidden max-w-2xl mx-auto px-4 py-3 bg-surface border-b border-border shadow-sm">
+    <div class="relative">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+        <input type="text" id="searchInput" oninput="filterHistory()" placeholder="Search past analyses by keywords or findings..." class="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-lg text-sm focus:ring-1 focus:ring-primary focus:border-primary shadow-inner">
+    </div>
+</div>
+
 <main class="max-w-2xl mx-auto px-4 py-6">
-<!-- Section: Past 24 Hours -->
-<div class="mb-8">
-<h2 class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 mb-4 px-1">Past 24 hours</h2>
-<div class="space-y-4">
-<!-- History Item Card 1 -->
-<div class="flex flex-col gap-3 p-4 rounded-xl bg-surface border border-border item-shadow hover:border-primary/30 transition-all cursor-pointer group">
-<div class="flex justify-between items-start gap-4">
-<div class="flex-1">
-<div class="flex items-center gap-2 mb-2">
-<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-600 uppercase">False</span>
-<span class="text-slate-400 text-xs font-medium">2 hours ago</span>
-</div>
-<p class="text-slate-900 font-semibold leading-tight group-hover:text-primary transition-colors">AI will replace all software engineers by the end of 2025.</p>
-</div>
-<div class="shrink-0 text-right">
-<div class="text-2xl font-bold text-red-500 leading-none">15<span class="text-xs text-slate-400 font-normal ml-0.5">/100</span></div>
-<p class="text-[9px] text-slate-400 uppercase font-bold tracking-wider mt-1">Echo Score</p>
-</div>
-</div>
-<div class="flex items-center gap-2 pt-3 border-t border-border/50">
-<span class="material-symbols-outlined text-slate-400 text-[16px]">link</span>
-<p class="text-xs text-slate-500 truncate">Source: twitter.com/tech_leaks...</p>
-</div>
-</div>
-<!-- History Item Card 2 -->
-<div class="flex flex-col gap-3 p-4 rounded-xl bg-surface border border-border item-shadow hover:border-primary/30 transition-all cursor-pointer group">
-<div class="flex justify-between items-start gap-4">
-<div class="flex-1">
-<div class="flex items-center gap-2 mb-2">
-<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-700 uppercase">Unverified</span>
-<span class="text-slate-400 text-xs font-medium">10 hours ago</span>
-</div>
-<p class="text-slate-900 font-semibold leading-tight group-hover:text-primary transition-colors">New discovery confirms hidden oceans beneath Mars' surface.</p>
-</div>
-<div class="shrink-0 text-right">
-<div class="text-2xl font-bold text-amber-500 leading-none">45<span class="text-xs text-slate-400 font-normal ml-0.5">/100</span></div>
-<p class="text-[9px] text-slate-400 uppercase font-bold tracking-wider mt-1">Echo Score</p>
-</div>
-</div>
-<div class="flex items-center gap-2 pt-3 border-t border-border/50">
-<span class="material-symbols-outlined text-slate-400 text-[16px]">science</span>
-<p class="text-xs text-slate-500 truncate">Source: ScienceDaily Research Paper</p>
-</div>
-</div>
-</div>
-</div>
-<!-- Section: Past Week -->
-<div>
-<h2 class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 mb-4 px-1">Past Week</h2>
-<div class="space-y-4">
-<!-- History Item Card 3 -->
-<div class="flex flex-col gap-3 p-4 rounded-xl bg-surface border border-border item-shadow hover:border-primary/30 transition-all cursor-pointer group">
-<div class="flex justify-between items-start gap-4">
-<div class="flex-1">
-<div class="flex items-center gap-2 mb-2">
-<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-700 uppercase">True</span>
-<span class="text-slate-400 text-xs font-medium">3 days ago</span>
-</div>
-<p class="text-slate-900 font-semibold leading-tight group-hover:text-primary transition-colors">Global average temperature reaches record high for third month straight.</p>
-</div>
-<div class="shrink-0 text-right">
-<div class="text-2xl font-bold text-green-600 leading-none">92<span class="text-xs text-slate-400 font-normal ml-0.5">/100</span></div>
-<p class="text-[9px] text-slate-400 uppercase font-bold tracking-wider mt-1">Echo Score</p>
-</div>
-</div>
-<div class="flex items-center gap-2 pt-3 border-t border-border/50">
-<span class="material-symbols-outlined text-slate-400 text-[16px]">public</span>
-<p class="text-xs text-slate-500 truncate">Source: World Meteorological Organization</p>
-</div>
-</div>
-<!-- History Item Card 4 -->
-<div class="flex flex-col gap-3 p-4 rounded-xl bg-surface border border-border item-shadow hover:border-primary/30 transition-all cursor-pointer group">
-<div class="flex justify-between items-start gap-4">
-<div class="flex-1">
-<div class="flex items-center gap-2 mb-2">
-<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-600 uppercase">False</span>
-<span class="text-slate-400 text-xs font-medium">5 days ago</span>
-</div>
-<p class="text-slate-900 font-semibold leading-tight group-hover:text-primary transition-colors">Major bank announces complete shift to cryptocurrency by next Monday.</p>
-</div>
-<div class="shrink-0 text-right">
-<div class="text-2xl font-bold text-red-500 leading-none">08<span class="text-xs text-slate-400 font-normal ml-0.5">/100</span></div>
-<p class="text-[9px] text-slate-400 uppercase font-bold tracking-wider mt-1">Echo Score</p>
-</div>
-</div>
-<div class="flex items-center gap-2 pt-3 border-t border-border/50">
-<span class="material-symbols-outlined text-slate-400 text-[16px]">payments</span>
-<p class="text-xs text-slate-500 truncate">Source: Viral WhatsApp Message</p>
-</div>
-</div>
-</div>
-</div>
+    <!-- Section: Past 24 Hours -->
+    <div id="section-24h" class="mb-8 hidden">
+        <h2 class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 mb-4 px-1">Past 24 hours</h2>
+        <div id="list-24h" class="space-y-4">
+            <!-- Dynamic History Items -->
+        </div>
+    </div>
+    
+    <!-- Section: Older -->
+    <div id="section-older" class="hidden">
+        <h2 class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 mb-4 px-1">Older</h2>
+        <div id="list-older" class="space-y-4">
+            <!-- Dynamic History Items -->
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="hidden text-center py-20 px-4">
+        <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span class="material-symbols-outlined text-3xl text-slate-400">history_toggle_off</span>
+        </div>
+        <h3 class="text-lg font-bold text-slate-800 mb-2">No History Yet</h3>
+        <p class="text-sm text-slate-500 max-w-xs mx-auto mb-6">Analyses you perform will automatically be saved here so you can review them later.</p>
+        <button onclick="window.location.href='../dashboard_updated/code.html'" class="px-6 py-2.5 bg-primary text-white font-bold rounded-lg shadow-sm hover:bg-primary/90 transition-colors">Start an Analysis</button>
+    </div>
+    
+    <!-- No Search Results State -->
+    <div id="no-search-results" class="hidden text-center py-10 px-4">
+        <p class="text-sm text-slate-500">No analyses matched your search query.</p>
+    </div>
 </main>
+
 <!-- Bottom Navigation Bar -->
-<nav class="fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-xl border-t border-border pb-safe z-50">
-<div class="flex justify-around items-center h-20 px-2 max-w-2xl mx-auto">
-<a class="flex flex-col items-center gap-1 inactive-nav hover:text-primary transition-colors flex-1" href="#">
-<span class="material-symbols-outlined text-[26px]">home</span>
-<span class="text-[10px] font-bold uppercase tracking-tight">Home</span>
-</a>
-<a class="flex flex-col items-center gap-1 inactive-nav hover:text-primary transition-colors flex-1" href="#">
-<span class="material-symbols-outlined text-[26px]">forum</span>
-<span class="text-[10px] font-bold uppercase tracking-tight">Forum</span>
-</a>
-<a class="flex flex-col items-center -mt-8 flex-1" href="#">
-<div class="w-14 h-14 rounded-full bg-primary text-white shadow-lg shadow-primary/20 flex items-center justify-center active:scale-95 transition-transform border-4 border-background">
-<span class="material-symbols-outlined text-3xl font-bold">qr_code_scanner</span>
-</div>
-<span class="text-[10px] font-bold uppercase tracking-tight mt-1 text-primary">Scan</span>
-</a>
-<a class="flex flex-col items-center gap-1 active-nav flex-1" href="#">
-<span class="material-symbols-outlined text-[26px] fill-1">history</span>
-<span class="text-[10px] font-bold uppercase tracking-tight">History</span>
-</a>
-<a class="flex flex-col items-center gap-1 inactive-nav hover:text-primary transition-colors flex-1" href="#">
-<span class="material-symbols-outlined text-[26px]">person</span>
-<span class="text-[10px] font-bold uppercase tracking-tight">Profile</span>
-</a>
-</div>
+<nav class="fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-xl border-t border-border pb-safe-area-inset-bottom z-50">
+    <div class="flex justify-around items-center h-20 px-2 max-w-2xl mx-auto">
+        <a class="flex flex-col items-center gap-1 inactive-nav hover:text-primary transition-colors flex-1" href="../dashboard_updated/code.html">
+            <span class="material-symbols-outlined text-[26px]">home</span>
+            <span class="text-[10px] font-bold uppercase tracking-tight">Home</span>
+        </a>
+        <a class="flex flex-col items-center -mt-8 flex-1" href="../dashboard_updated/code.html">
+            <div class="w-14 h-14 rounded-full bg-primary text-white shadow-lg shadow-primary/20 flex items-center justify-center active:scale-95 transition-transform border-4 border-background hover:scale-105">
+                <span class="material-symbols-outlined text-3xl font-bold">qr_code_scanner</span>
+            </div>
+            <span class="text-[10px] font-bold uppercase tracking-tight mt-1 text-primary">Scan</span>
+        </a>
+        <a class="flex flex-col items-center gap-1 active-nav flex-1" href="#">
+            <span class="material-symbols-outlined text-[26px] fill-1">history</span>
+            <span class="text-[10px] font-bold uppercase tracking-tight">History</span>
+        </a>
+        <a class="flex flex-col items-center gap-1 inactive-nav hover:text-primary transition-colors flex-1" href="../profile_updated/code.html">
+            <span class="material-symbols-outlined text-[26px]">person</span>
+            <span class="text-[10px] font-bold uppercase tracking-tight">Profile</span>
+        </a>
+    </div>
 </nav>
-</body></html>
+
+<script>
+    window.onload = () => {
+        loadHistory();
+    };
+
+    function toggleSearch() {
+        const container = document.getElementById('search-container');
+        container.classList.toggle('hidden');
+        if(!container.classList.contains('hidden')) {
+            document.getElementById('searchInput').focus();
+        } else {
+            document.getElementById('searchInput').value = '';
+            filterHistory();
+        }
+    }
+
+    function filterHistory() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        
+        let count24h = 0;
+        const list24h = document.getElementById('list-24h');
+        Array.from(list24h.children).forEach(card => {
+            if(card.innerText.toLowerCase().includes(query)) {
+                card.style.display = 'flex';
+                count24h++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        document.getElementById('section-24h').classList.toggle('hidden', count24h === 0);
+
+        let countOlder = 0;
+        const listOlder = document.getElementById('list-older');
+        Array.from(listOlder.children).forEach(card => {
+            if(card.innerText.toLowerCase().includes(query)) {
+                card.style.display = 'flex';
+                countOlder++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        document.getElementById('section-older').classList.toggle('hidden', countOlder === 0);
+
+        const noResults = document.getElementById('no-search-results');
+        if(query.trim() !== '' && count24h === 0 && countOlder === 0) {
+            noResults.classList.remove('hidden');
+        } else {
+            noResults.classList.add('hidden');
+        }
+    }
+
+    function timeAgo(dateString) {
+        const past = new Date(dateString);
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - past) / 1000);
+
+        if (diffInSeconds < 60) return "Just now";
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+        if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+        return past.toLocaleDateString();
+    }
+
+    function isWithin24Hours(dateString) {
+        const past = new Date(dateString);
+        const now = new Date();
+        const diffInHours = (now - past) / (1000 * 60 * 60);
+        return diffInHours < 24;
+    }
+
+    function createHistoryCard(item) {
+        let badgeColor = 'bg-red-100 text-red-600';
+        let scoreColor = 'text-red-500';
+
+        if(item.verdict === 'Verified') {
+            badgeColor = 'bg-emerald-100 text-emerald-700';
+            scoreColor = 'text-emerald-600';
+        } else if (item.verdict === 'Misleading') {
+            badgeColor = 'bg-amber-100 text-amber-700';
+            scoreColor = 'text-amber-500';
+        }
+
+        const exactTime = new Date(item.id).toISOString();
+
+        const el = document.createElement('div');
+        el.className = 'flex flex-col gap-3 p-4 rounded-xl bg-surface border border-border item-shadow hover:border-primary/30 transition-all cursor-pointer group';
+        el.onclick = () => { window.location.href = '../analysis_page_updated/code.html?text=' + encodeURIComponent(item.text); };
+
+        el.innerHTML = `
+            <div class="flex justify-between items-start gap-4">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${badgeColor} uppercase">${item.verdict}</span>
+                        <span class="text-slate-400 text-xs font-medium">${timeAgo(exactTime)}</span>
+                    </div>
+                    <p class="text-slate-900 font-semibold leading-tight group-hover:text-primary transition-colors line-clamp-2">${item.text}</p>
+                </div>
+                <div class="shrink-0 text-right">
+                    <div class="text-2xl font-bold ${scoreColor} leading-none">${item.score}<span class="text-xs text-slate-400 font-normal ml-0.5">/100</span></div>
+                    <p class="text-[9px] text-slate-400 uppercase font-bold tracking-wider mt-1">Echo Score</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 pt-3 border-t border-border/50">
+                <span class="material-symbols-outlined text-slate-400 text-[16px]">link</span>
+                <p class="text-xs text-slate-500 truncate">Source: User Input Analyzer</p>
+            </div>
+        `;
+        return el;
+    }
+
+    function loadHistory() {
+        const historyData = JSON.parse(localStorage.getItem('eg_history') || '[]');
+        
+        const sec24h = document.getElementById('section-24h');
+        const list24h = document.getElementById('list-24h');
+        
+        const secOlder = document.getElementById('section-older');
+        const listOlder = document.getElementById('list-older');
+        
+        const emptyState = document.getElementById('empty-state');
+
+        if(historyData.length === 0) {
+            emptyState.classList.remove('hidden');
+            return;
+        }
+
+        let has24h = false;
+        let hasOlder = false;
+
+        historyData.forEach(item => {
+            const card = createHistoryCard(item);
+            
+            // Assume the item ID is a Date.now() timestamp we set during analysis
+            // If missing, fallback to generic date parsing
+            const timeObj = item.id ? item.id : new Date(item.date).getTime();
+
+            if(isWithin24Hours(new Date(timeObj))) {
+                list24h.appendChild(card);
+                has24h = true;
+            } else {
+                listOlder.appendChild(card);
+                hasOlder = true;
+            }
+        });
+
+        if(has24h) sec24h.classList.remove('hidden');
+        if(hasOlder) secOlder.classList.remove('hidden');
+    }
+</script>

@@ -234,19 +234,15 @@
             <span class="material-symbols-outlined">home</span>
             <p class="text-[10px] font-medium uppercase tracking-tighter">Home</p>
         </a>
-        <a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
-            <span class="material-symbols-outlined">forum</span>
-            <p class="text-[10px] font-medium uppercase tracking-tighter">Forum</p>
-        </a>
-        <a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="#">
+        <a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="../dashboard_updated/code.html">
             <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">shield</span>
             <p class="text-[10px] font-bold uppercase tracking-tighter">Scan</p>
         </a>
-        <a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+        <a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 hover:text-primary transition-colors" href="../history_updated/code.html">
             <span class="material-symbols-outlined">history</span>
             <p class="text-[10px] font-medium uppercase tracking-tighter">History</p>
         </a>
-        <a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+        <a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 hover:text-primary transition-colors" href="../profile_updated/code.html">
             <span class="material-symbols-outlined">person</span>
             <p class="text-[10px] font-medium uppercase tracking-tighter">Profile</p>
         </a>
@@ -258,44 +254,65 @@
     const urlParams = new URLSearchParams(window.location.search);
     const inputText = urlParams.get('text') || "Analyzing demo default text...";
 
-    // Simulated API Response based on PRD
-    const mockApiResponse = {
-        "credibility": 12.4, // Fake implies credibility is low
-        "fake_probability": 87.6,
-        "manipulation": { 
-            "level": "HIGH", 
-            "emotion": "surprise", 
-            "intensity": 78.4, 
-            "keywords": ["shocking", "exposed", "they don't want you to know"] 
-        },
-        "bias": { 
-            "leaning": "RIGHT", 
-            "confidence": 82.6, 
-            "propaganda_flag": true 
-        },
-        "source_reliability": { 
-            "level": "MEDIUM", 
-            "score": 45, 
-            "domain": "unknown-blog.net" 
-        },
-        "clickbait": { 
-            "is_clickbait": true, 
-            "probability": 91.2 
-        },
-        "balanced_views": [
-            { "title": "No evidence of widespread claims around recent policy", "source": "Reuters", "url": "#" },
-            { "title": "Fact Check: The truth about the viral post", "source": "BBC", "url": "#" },
-            { "title": "Official Statement on recent controversies", "source": "AP News", "url": "#" }
-        ],
-        "ai_reasoning": "Our multi-signal analysis detected significant sensationalism, low source reliability, and confirmed contradictions from established factual datasets. The emotional tone highly suggests intent to manipulate."
-    };
+    // 1. Send Request to FastAPI Backend
+    async function fetchAnalysis(text) {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            });
+            
+            if(!response.ok) throw new Error("API Network Error");
+            
+            const data = await response.json();
+            
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('results-state').classList.remove('hidden');
+            
+            // Expose globally for TTS
+            window.lastApiResponse = data;
 
-    // Simulate Network Request Delay
-    setTimeout(() => {
-        document.getElementById('loading-state').classList.add('hidden');
-        document.getElementById('results-state').classList.remove('hidden');
-        populateDashboard(mockApiResponse);
-    }, 1500);
+            populateDashboard(data);
+            saveToHistory(text, data);
+            
+        } catch (error) {
+            console.error(error);
+            document.getElementById('loading-state').innerHTML = `
+                <div class="text-red-500 mb-4"><span class="material-symbols-outlined text-4xl">error</span></div>
+                <h2 class="text-xl font-bold text-slate-800 mb-2">Analysis Failed</h2>
+                <p class="text-sm text-slate-500 text-center max-w-xs">Could not connect to the backend server. Make sure FastAPI is running.</p>
+                <button onclick="window.location.reload()" class="mt-6 px-4 py-2 bg-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-300">Try Again</button>
+            `;
+            document.getElementById('loading-state').classList.remove('animate-pulse');
+        }
+    }
+
+    // Launch on page load
+    fetchAnalysis(inputText);
+
+    function saveToHistory(text, data) {
+        let history = JSON.parse(localStorage.getItem('eg_history') || '[]');
+        
+        // Create history item
+        const item = {
+            id: Date.now(),
+            text: text.length > 50 ? text.substring(0, 50) + '...' : text,
+            date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            score: data.credibility,
+            verdict: data.credibility >= 70 ? 'Verified' : data.credibility >= 40 ? 'Misleading' : 'High Risk'
+        };
+
+        // Add to beginning of array
+        history.unshift(item);
+        
+        // Keep only last 10 items
+        if(history.length > 10) {
+            history = history.slice(0, 10);
+        }
+
+        localStorage.setItem('eg_history', JSON.stringify(history));
+    }
 
     function getScoreColor(score) {
         if (score >= 70) return { main: '#10b981', bg: 'bg-emerald-500', text: 'text-emerald-600', labelBg: 'bg-emerald-100', labelStr: 'Verified' };
@@ -400,19 +417,23 @@
             document.getElementById('clickbaitBar').style.width = `${data.clickbait.probability}%`;
         }, 100);
 
-        // 6. Depolarisation / Balanced Views
+        // 6. Depolarisation / Balanced Views (NewsAPI)
         const viewsContainer = document.getElementById('balancedViewsList');
+        viewsContainer.innerHTML = ''; // Clear skeleton
         data.balanced_views.forEach(v => {
-            const el = document.createElement('a');
-            el.href = v.url;
-            el.className = 'block p-3 bg-background-light hover:bg-white rounded-lg border border-background-beige transition-colors group cursor-pointer shadow-sm';
+            // v is a string like "Article Title - Source Name"
+            const parts = v.split(' - ');
+            const title = parts[0] || v;
+            const source = parts[1] || 'Trusted News';
+
+            const el = document.createElement('div');
+            el.className = 'block p-3 bg-background-light rounded-lg border border-background-beige shadow-sm';
             el.innerHTML = `
                 <div class="flex items-start justify-between gap-3">
                     <div>
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">${v.source}</p>
-                        <p class="text-xs sm:text-sm text-slate-700 font-medium group-hover:text-primary transition-colors leading-snug">${v.title}</p>
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">${source}</p>
+                        <p class="text-xs sm:text-sm text-slate-700 font-medium leading-snug">${title}</p>
                     </div>
-                    <span class="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors text-base mt-2">open_in_new</span>
                 </div>
             `;
             viewsContainer.appendChild(el);
@@ -431,7 +452,9 @@
             return;
         }
 
-        const data = mockApiResponse;
+        const data = window.lastApiResponse;
+        if(!data) return;
+
         const textToSpeak = `EchoGuard Analysis Complete. Credibility score is ${data.credibility} percent, with a fake probability of ${data.fake_probability} percent. 
         Manipulation alert is ${data.manipulation.level}, dominant emotion detected is ${data.manipulation.emotion}. 
         Bias meter reads ${data.bias.leaning} leaning. 
@@ -452,10 +475,19 @@
     }
 
     // Feedback
-    function sendFeedback(type) {
+    async function sendFeedback(type) {
         document.getElementById('feedbackThanks').textContent = `Recorded as ${type}. Thank you for your feedback!`;
         document.getElementById('feedbackThanks').classList.remove('hidden');
-        // Add actual POST to /feedback here
+        
+        try {
+            await fetch('http://127.0.0.1:8000/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ feedback: type })
+            });
+        } catch(e) {
+            console.error("Feedback failed to save: ", e);
+        }
     }
 
     // Sharing

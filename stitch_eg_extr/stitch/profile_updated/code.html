@@ -1,9 +1,10 @@
 <html><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EchoGuard - Profile</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
@@ -11,8 +12,8 @@
                 extend: {
                     colors: {
                         "primary": "#1d468b",
-                        "accent": "#d4a373", // Beige accent for THEME_9 feel
-                        "background-light": "#fdfaf6", // Off-white/cream
+                        "accent": "#d4a373", 
+                        "background-light": "#fdfaf6",
                         "background-dark": "#121620",
                     },
                     fontFamily: {
@@ -36,148 +37,360 @@
         }
         body {
             min-height: max(884px, 100dvh);
+            -webkit-tap-highlight-color: transparent;
         }
     </style>
 </head>
-<body class="bg-background-light font-display text-slate-800 min-h-screen flex flex-col">
+<body class="bg-background-light font-display text-slate-800 min-h-screen flex flex-col relative overflow-x-hidden">
 <!-- Header -->
 <header class="sticky top-0 z-50 flex items-center bg-background-light/90 backdrop-blur-md p-4 justify-between border-b border-slate-200">
-<div class="flex items-center gap-3">
-<span class="material-symbols-outlined text-slate-600">arrow_back</span>
-<h1 class="text-lg font-bold tracking-tight text-slate-900">Profile</h1>
-</div>
-<button class="flex items-center justify-center rounded-lg h-10 w-10 bg-primary/5 text-primary">
-<span class="material-symbols-outlined">settings</span>
-</button>
+    <div class="flex items-center gap-3">
+        <button onclick="window.location.href='../dashboard_updated/code.html'" class="p-2 -ml-2 rounded-full hover:bg-slate-100 transition-colors cursor-pointer text-slate-600 flex items-center justify-center">
+            <span class="material-symbols-outlined">arrow_back</span>
+        </button>
+        <h1 class="text-lg font-bold tracking-tight text-slate-900">Profile</h1>
+    </div>
+    <button onclick="toggleEditMode()" id="editBtn" class="px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold text-sm hover:bg-primary/20 transition-colors">
+        Edit
+    </button>
 </header>
 <main class="flex-1 overflow-y-auto pb-24">
-<!-- Profile Top Section -->
-<div class="flex flex-col items-center py-8 px-4">
-<div class="relative">
-<div class="size-32 rounded-full border-4 border-accent/20 p-1 bg-gradient-to-tr from-primary/20 to-accent/40">
-<img alt="User Profile Avatar" class="w-full h-full rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbrmWBAdGyRxV6msneTcj1l5PlRE2nJQsUjNPmg6jiqq8XR_y8hWYfKRkkYIFi9NCubQ_e0hOczEZeiIax-1X2MtlTmUud582ehqv5BX6Wo16yfpxcDFa6MKMSPHXIxRmqwxrCRcE9h_PozWGpjrSHE6FhMkemykeZOHYhFDdk7Be8QB46KL2yTxlCgXyyjsjGmpNp1nSdFYT6esckqq087CDz61_k82-54dX9nig8YdYXSPls5UlBb3rMjyW5kQb7r80OJyKg1A"/>
-</div>
-<div class="absolute bottom-1 right-1 bg-accent text-white rounded-full p-1 border-2 border-background-light">
-<span class="material-symbols-outlined text-sm font-bold">verified</span>
-</div>
-</div>
-<div class="mt-4 text-center">
-<h2 class="text-2xl font-bold text-slate-900">@Alex_EchoGuard</h2>
-<div class="flex items-center justify-center gap-2 mt-1">
-<span class="text-primary text-sm font-semibold uppercase tracking-wider">Elite Verifier</span>
-<span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-<p class="text-slate-500 text-sm">Joined March 2024</p>
-</div>
-</div>
-</div>
-<!-- Reputation Stats -->
-<div class="grid grid-cols-3 gap-3 px-4 mb-8">
-<div class="glass-panel rounded-lg p-4 flex flex-col items-center text-center border border-slate-200 shadow-sm bg-white/50">
-<p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Truth Score</p>
-<p class="text-xl font-bold text-primary">984</p>
-<p class="text-[10px] text-emerald-600 font-bold mt-1">+12</p>
-</div>
-<div class="glass-panel rounded-lg p-4 flex flex-col items-center text-center border border-slate-200 shadow-sm bg-white/50">
-<p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Verified</p>
-<p class="text-xl font-bold text-primary">152</p>
-<p class="text-[10px] text-emerald-600 font-bold mt-1">+5</p>
-</div>
-<div class="glass-panel rounded-lg p-4 flex flex-col items-center text-center border border-slate-200 shadow-sm bg-white/50">
-<p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Accuracy</p>
-<p class="text-xl font-bold text-primary">99.2%</p>
-<p class="text-[10px] text-emerald-600 font-bold mt-1">+0.1%</p>
-</div>
-</div>
-<!-- Activity Section -->
-<div class="px-4 mb-8">
-<div class="flex items-center justify-between mb-4">
-<h3 class="text-lg font-bold text-slate-900">Recent Activity</h3>
-<button class="text-primary text-sm font-semibold">View All</button>
-</div>
-<div class="space-y-3">
-<div class="flex gap-4 p-4 rounded-lg bg-white border border-slate-200 shadow-sm">
-<div class="size-10 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-<span class="material-symbols-outlined text-emerald-600">fact_check</span>
-</div>
-<div class="flex flex-col">
-<p class="text-sm font-semibold text-slate-900">Fact-checked deepfake video</p>
-<p class="text-xs text-slate-500 mt-1">Confirmed 'Manipulated Media' regarding Election Tech claims.</p>
-<p class="text-[10px] text-slate-400 mt-2 font-medium uppercase tracking-tighter">2 hours ago</p>
-</div>
-</div>
-<div class="flex gap-4 p-4 rounded-lg bg-white border border-slate-200 shadow-sm">
-<div class="size-10 rounded-lg bg-primary/5 flex items-center justify-center shrink-0">
-<span class="material-symbols-outlined text-primary">post_add</span>
-</div>
-<div class="flex flex-col">
-<p class="text-sm font-semibold text-slate-900">New Claim Analyzed</p>
-<p class="text-xs text-slate-500 mt-1">Analyzed statement by @GlobalNews about climate projections.</p>
-<p class="text-[10px] text-slate-400 mt-2 font-medium uppercase tracking-tighter">Yesterday</p>
-</div>
-</div>
-</div>
-</div>
-<!-- Settings Section -->
-<div class="px-4 pb-8">
-<h3 class="text-lg font-bold text-slate-900 mb-4">Preferences</h3>
-<div class="rounded-lg overflow-hidden border border-slate-200 bg-white shadow-sm">
-<div class="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer">
-<div class="flex items-center gap-3">
-<span class="material-symbols-outlined text-slate-500">language</span>
-<span class="text-sm font-medium">Language</span>
-</div>
-<div class="flex items-center gap-2">
-<span class="text-sm text-slate-400">English</span>
-<span class="material-symbols-outlined text-slate-300">chevron_right</span>
-</div>
-</div><div class="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors border-t border-slate-100">
-<div class="flex items-center gap-3">
-<span class="material-symbols-outlined text-slate-500">dark_mode</span>
-<span class="text-sm font-medium">Dark Mode</span>
-</div>
-<div class="w-10 h-6 bg-slate-200 rounded-full relative flex items-center px-1">
-<div class="size-4 bg-white rounded-full shadow-sm"></div>
-</div>
-</div>
-<div class="flex items-center justify-between p-4 border-t border-slate-100 hover:bg-slate-50 transition-colors">
-<div class="flex items-center gap-3">
-<span class="material-symbols-outlined text-slate-500">notifications_active</span>
-<span class="text-sm font-medium">Notifications</span>
-</div>
-<span class="material-symbols-outlined text-slate-300">chevron_right</span>
-</div>
-<div class="flex items-center justify-between p-4 border-t border-slate-100 hover:bg-slate-50 transition-colors">
-<div class="flex items-center gap-3 text-red-500">
-<span class="material-symbols-outlined">logout</span>
-<span class="text-sm font-medium">Logout</span>
-</div>
-</div>
-</div>
-</div>
+    <!-- Profile Top Section -->
+    <div class="flex flex-col items-center py-8 px-4">
+        <!-- Avatar Wrapper -->
+        <div class="relative group cursor-pointer" onclick="triggerImageUpload()">
+            <div class="size-32 rounded-full border-4 border-accent/20 p-1 bg-gradient-to-tr from-primary/20 to-accent/40 relative overflow-hidden">
+                <img id="profileImage" alt="User Profile Avatar" class="w-full h-full rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbrmWBAdGyRxV6msneTcj1l5PlRE2nJQsUjNPmg6jiqq8XR_y8hWYfKRkkYIFi9NCubQ_e0hOczEZeiIax-1X2MtlTmUud582ehqv5BX6Wo16yfpxcDFa6MKMSPHXIxRmqwxrCRcE9h_PozWGpjrSHE6FhMkemykeZOHYhFDdk7Be8QB46KL2yTxlCgXyyjsjGmpNp1nSdFYT6esckqq087CDz61_k82-54dX9nig8YdYXSPls5UlBb3rMjyW5kQb7r80OJyKg1A"/>
+                
+                <!-- Hover Overlay for Edit Mode -->
+                <div id="imageEditOverlay" class="absolute inset-0 bg-black/40 flex items-center justify-center text-white opacity-0 transition-opacity hidden">
+                    <span class="material-symbols-outlined">photo_camera</span>
+                </div>
+            </div>
+            <div class="absolute bottom-1 right-1 bg-accent text-white rounded-full p-1 border-2 border-background-light">
+                <span class="material-symbols-outlined text-sm font-bold">verified</span>
+            </div>
+            <!-- Hidden file input for avatar -->
+            <input type="file" id="imageUploadInput" class="hidden" accept="image/png, image/jpeg" onchange="handleImageUpload(event)">
+        </div>
+
+        <div class="mt-4 text-center w-full max-w-xs">
+            <!-- View Mode -->
+            <div id="viewModeDetails">
+                <h2 id="displayUsername" class="text-2xl font-bold text-slate-900">@Alex_EchoGuard</h2>
+                <div class="flex items-center justify-center gap-2 mt-1">
+                    <span class="text-primary text-sm font-semibold uppercase tracking-wider">Elite Verifier</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                    <p class="text-slate-500 text-sm">Joined March 2026</p>
+                </div>
+                <p id="displayBio" class="text-sm text-slate-600 mt-3 px-4">Passionate about digital truth and combating misinformation echoes.</p>
+            </div>
+
+            <!-- Edit Mode Inputs -->
+            <div id="editModeDetails" class="hidden flex flex-col gap-3 mt-2 w-full">
+                <div>
+                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1 text-left">Username</label>
+                    <input type="text" id="inputUsername" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-primary outline-none" value="@Alex_EchoGuard">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1 text-left">Bio</label>
+                    <textarea id="inputBio" rows="2" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-700 focus:ring-2 focus:ring-primary outline-none resize-none">Passionate about digital truth and combating misinformation echoes.</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reputation Stats -->
+    <div class="grid grid-cols-3 gap-3 px-4 mb-8">
+        <div class="glass-panel rounded-lg p-4 flex flex-col items-center text-center border border-slate-200 shadow-sm bg-white/50">
+            <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Truth Score</p>
+            <p class="text-xl font-bold text-primary">984</p>
+            <p class="text-[10px] text-emerald-600 font-bold mt-1">+12</p>
+        </div>
+        <div class="glass-panel rounded-lg p-4 flex flex-col items-center text-center border border-slate-200 shadow-sm bg-white/50">
+            <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Verified</p>
+            <p class="text-xl font-bold text-primary">152</p>
+            <p class="text-[10px] text-emerald-600 font-bold mt-1">+5</p>
+        </div>
+        <div class="glass-panel rounded-lg p-4 flex flex-col items-center text-center border border-slate-200 shadow-sm bg-white/50">
+            <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Accuracy</p>
+            <p class="text-xl font-bold text-primary">99.2%</p>
+            <p class="text-[10px] text-emerald-600 font-bold mt-1">+0.1%</p>
+        </div>
+    </div>
+
+    <!-- Activity Section -->
+    <div class="px-4 mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-slate-900">Recent Activity</h3>
+            <button class="text-primary text-sm font-semibold hover:underline" onclick="toggleAllHistory()">View All</button>
+        </div>
+        <div id="recentActivityList" class="space-y-3">
+            <!-- Dynamic History Injected Here -->
+        </div>
+        
+        <div id="noHistoryMessage" class="hidden text-center p-6 border border-slate-200 rounded-lg bg-white shadow-sm">
+            <span class="material-symbols-outlined text-slate-300 text-4xl mb-2">history_toggle_off</span>
+            <p class="text-sm text-slate-500">No recent activity found. Try analyzing a claim!</p>
+            <button onclick="window.location.href='../dashboard_updated/code.html'" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold">Start Analysis</button>
+        </div>
+    </div>
+
+    <!-- Settings Section -->
+    <div class="px-4 pb-8">
+        <h3 class="text-lg font-bold text-slate-900 mb-4">Preferences</h3>
+        <div class="rounded-lg overflow-hidden border border-slate-200 bg-white shadow-sm flex flex-col">
+            <div class="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-slate-500">language</span>
+                    <span class="text-sm font-medium">Language</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-slate-400">English</span>
+                    <span class="material-symbols-outlined text-slate-300">chevron_right</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-100" onclick="toggleDarkMode()">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-slate-500">dark_mode</span>
+                    <span class="text-sm font-medium">Dark Mode Demo</span>
+                </div>
+                <div id="darkModeToggle" class="w-10 h-6 bg-slate-200 rounded-full relative flex items-center px-1 transition-colors">
+                    <div id="darkModeKnob" class="size-4 bg-white rounded-full shadow-sm transition-transform"></div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-slate-500">notifications_active</span>
+                    <span class="text-sm font-medium">Notifications</span>
+                </div>
+                <span class="material-symbols-outlined text-slate-300">chevron_right</span>
+            </div>
+
+            <div class="flex items-center justify-between p-4 hover:bg-red-50 transition-colors cursor-pointer" onclick="logout()">
+                <div class="flex items-center gap-3 text-red-500">
+                    <span class="material-symbols-outlined">logout</span>
+                    <span class="text-sm font-medium">Logout</span>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
+
 <!-- Bottom Navigation Bar -->
-<nav class="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white/90 backdrop-blur-lg px-2 pb-6 pt-2 flex justify-between items-center z-50">
-<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
-<span class="material-symbols-outlined">home</span>
-<span class="text-[10px] font-medium uppercase tracking-tighter">Home</span>
-</a>
-<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
-<span class="material-symbols-outlined">forum</span>
-<span class="text-[10px] font-medium uppercase tracking-tighter">Forum</span>
-</a>
-<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
-<div class="bg-primary size-10 rounded-full flex items-center justify-center -mt-8 shadow-lg shadow-primary/20">
-<span class="material-symbols-outlined text-white">qr_code_scanner</span>
-</div>
-<span class="text-[10px] font-medium uppercase tracking-tighter">Scan</span>
-</a>
-<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
-<span class="material-symbols-outlined">history</span>
-<span class="text-[10px] font-medium uppercase tracking-tighter">History</span>
-</a>
-<a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="#">
-<span class="material-symbols-outlined">person</span>
-<span class="text-[10px] font-bold uppercase tracking-tighter">Profile</span>
-</a>
+<nav class="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white/90 backdrop-blur-lg px-2 pb-safe-area-inset-bottom pt-2 h-16 flex justify-between items-center z-50">
+    <div class="flex max-w-2xl mx-auto w-full px-4 justify-around">
+        <a class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-primary transition-colors" href="../dashboard_updated/code.html">
+            <span class="material-symbols-outlined">home</span>
+            <span class="text-[10px] font-medium uppercase tracking-tighter">Home</span>
+        </a>
+        <a class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-primary transition-colors" href="../dashboard_updated/code.html">
+            <div class="bg-primary size-10 rounded-full flex items-center justify-center shadow-lg shadow-primary/30 mt-[-20px] mb-1 hover:scale-105 transition-transform">
+                <span class="material-symbols-outlined text-white">qr_code_scanner</span>
+            </div>
+            <span class="text-[10px] font-medium uppercase tracking-tighter text-primary">Scan</span>
+        </a>
+        <a class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-primary transition-colors" href="../history_updated/code.html">
+            <span class="material-symbols-outlined">history</span>
+            <span class="text-[10px] font-medium uppercase tracking-tighter">History</span>
+        </a>
+        <a class="flex flex-col items-center justify-center gap-1 text-primary" href="#">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">person</span>
+            <span class="text-[10px] font-bold uppercase tracking-tighter">Profile</span>
+        </a>
+    </div>
 </nav>
-</body></html>
+
+<script>
+    let isEditing = false;
+    let isDark = false;
+    let showingAllHistory = false;
+
+    window.onload = () => {
+        loadProfileData();
+        loadHistory();
+    };
+
+    function loadProfileData() {
+        const savedName = localStorage.getItem('eg_username');
+        const savedBio = localStorage.getItem('eg_bio');
+        const savedImg = localStorage.getItem('eg_profile_img');
+
+        if(savedName) {
+            document.getElementById('displayUsername').textContent = savedName;
+            document.getElementById('inputUsername').value = savedName;
+        }
+        if(savedBio) {
+            document.getElementById('displayBio').textContent = savedBio;
+            document.getElementById('inputBio').value = savedBio;
+        }
+        if(savedImg) {
+            document.getElementById('profileImage').src = savedImg;
+        }
+    }
+
+    function loadHistory() {
+        const historyData = JSON.parse(localStorage.getItem('eg_history') || '[]');
+        const listContainer = document.getElementById('recentActivityList');
+        const noHistoryMsg = document.getElementById('noHistoryMessage');
+        
+        listContainer.innerHTML = ''; // clear
+
+        if(historyData.length === 0) {
+            noHistoryMsg.classList.remove('hidden');
+            return;
+        } else {
+            noHistoryMsg.classList.add('hidden');
+        }
+
+        // Determine how many to show
+        const displayLimit = showingAllHistory ? historyData.length : Math.min(3, historyData.length);
+        
+        for(let i = 0; i < displayLimit; i++) {
+            const item = historyData[i];
+            
+            // Icon and colors based on verdict
+            let iconStr = 'post_add';
+            let iconBg = 'bg-primary/5';
+            let iconCol = 'text-primary';
+            
+            if(item.verdict === 'Verified') {
+                iconStr = 'check_circle';
+                iconBg = 'bg-emerald-50';
+                iconCol = 'text-emerald-600';
+            } else if (item.verdict === 'High Risk') {
+                iconStr = 'warning';
+                iconBg = 'bg-red-50';
+                iconCol = 'text-red-500';
+            }
+
+            const el = document.createElement('div');
+            el.className = 'flex gap-4 p-4 rounded-lg bg-white border border-slate-200 shadow-sm transition-colors cursor-pointer hover:bg-slate-50';
+            el.onclick = () => { window.location.href = '../analysis_page_updated/code.html?text=' + encodeURIComponent(item.text); };
+            
+            el.innerHTML = `
+                <div class="size-10 rounded-lg ${iconBg} flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined ${iconCol}">${iconStr}</span>
+                </div>
+                <div class="flex flex-col overflow-hidden">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="text-sm font-semibold text-slate-900 truncate">Analyzed: "${item.text}"</p>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1 line-clamp-1">Result: ${item.verdict} (Score: ${item.score}/100)</p>
+                    <p class="text-[10px] text-slate-400 mt-2 font-medium uppercase tracking-tighter">${item.date}</p>
+                </div>
+            `;
+            listContainer.appendChild(el);
+        }
+    }
+
+    function toggleAllHistory() {
+        showingAllHistory = !showingAllHistory;
+        const btn = document.querySelector('button[onclick="toggleAllHistory()"]');
+        btn.textContent = showingAllHistory ? "Show Less" : "View All";
+        loadHistory();
+    }
+
+    function toggleEditMode() {
+        const btn = document.getElementById('editBtn');
+        const viewGroup = document.getElementById('viewModeDetails');
+        const editGroup = document.getElementById('editModeDetails');
+        const imgOverlay = document.getElementById('imageEditOverlay');
+
+        if(!isEditing) {
+            // ENTER EDIT MODE
+            isEditing = true;
+            btn.textContent = "Save";
+            btn.className = "px-4 py-1.5 rounded-lg bg-emerald-500 text-white font-bold text-sm shadow hover:bg-emerald-600 transition-colors";
+            
+            viewGroup.classList.add('hidden');
+            editGroup.classList.remove('hidden');
+            imgOverlay.classList.remove('hidden');
+            imgOverlay.classList.remove('opacity-0');
+            imgOverlay.classList.add('opacity-100');
+            imgOverlay.classList.add('group-hover:opacity-100');
+        } else {
+            // SAVE & EXIT EDIT MODE
+            isEditing = false;
+            
+            // Get new values
+            const newName = document.getElementById('inputUsername').value.trim();
+            const newBio = document.getElementById('inputBio').value.trim();
+            
+            // Basic validation
+            if(!newName) {
+                alert("Username cannot be empty");
+                return;
+            }
+
+            // Update DOM
+            document.getElementById('displayUsername').textContent = newName;
+            document.getElementById('displayBio').textContent = newBio;
+            
+            // Save to LocalStorage
+            localStorage.setItem('eg_username', newName);
+            localStorage.setItem('eg_bio', newBio);
+
+            // Reset UI
+            btn.textContent = "Edit";
+            btn.className = "px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold text-sm hover:bg-primary/20 transition-colors";
+            
+            editGroup.classList.add('hidden');
+            viewGroup.classList.remove('hidden');
+            imgOverlay.classList.add('opacity-0');
+            imgOverlay.classList.add('hidden');
+        }
+    }
+
+    function triggerImageUpload() {
+        if(!isEditing) return; // Only allow upload in edit mode
+        document.getElementById('imageUploadInput').click();
+    }
+
+    function handleImageUpload(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const newImgSrc = e.target.result;
+                document.getElementById('profileImage').src = newImgSrc;
+                localStorage.setItem('eg_profile_img', newImgSrc);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function toggleDarkMode() {
+        isDark = !isDark;
+        const toggleBg = document.getElementById('darkModeToggle');
+        const knob = document.getElementById('darkModeKnob');
+
+        if(isDark) {
+            toggleBg.classList.replace('bg-slate-200', 'bg-primary');
+            knob.classList.add('translate-x-4');
+            document.body.classList.add('bg-slate-900');
+            // Mock alert since full dark mode CSS isn't fully written in the raw HTML
+            console.log("Dark Mode toggled ON (Demo)");
+        } else {
+            toggleBg.classList.replace('bg-primary', 'bg-slate-200');
+            knob.classList.remove('translate-x-4');
+            document.body.classList.remove('bg-slate-900');
+            console.log("Dark Mode toggled OFF (Demo)");
+        }
+    }
+
+    function logout() {
+        const confirmLogout = confirm("Are you sure you want to log out?");
+        if(confirmLogout) {
+            localStorage.removeItem('eg_username');
+            localStorage.removeItem('eg_bio');
+            localStorage.removeItem('eg_profile_img');
+            localStorage.removeItem('eg_history');
+            window.location.href = '../dashboard_updated/code.html';
+        }
+    }
+</script>
+</body>
+</html>
