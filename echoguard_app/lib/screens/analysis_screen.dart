@@ -26,9 +26,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   void initState() {
     super.initState();
     if (widget.preloadedResult != null) {
-      // Image analysis already done — skip the API call
+      // Image/overlay analysis already done — skip the API call
       _result = widget.preloadedResult;
       _loading = false;
+      // Save to history (same as text analysis path)
+      StorageService.addToHistory(widget.text, widget.preloadedResult!.credibility);
     } else {
       _fetchAnalysis();
     }

@@ -2,50 +2,97 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import '../models/analysis_result.dart';
-import '../config.dart';
 
-/// EchoGuard Analysis Engine — Backend-first, local-fallback architecture.
+/// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+/// EchoGuard Direct Analysis Service
+/// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ///
-/// 1. OCR.space (free) extracts text from images
-/// 2. Extracted text is sent to the backend `/analyze` endpoint
-///    (same pipeline as manual text input — Mercury-2 AI fact-checking)
-/// 3. If backend is unreachable, falls back to a local NLP heuristic engine
+/// PRIMARY:  Inception Labs Mercury-2 API  (direct from phone, no backend)
+/// OCR:     OCR.space free API  (image → text extraction)
+/// FALLBACK: Local NLP heuristic engine  (offline / API down)
+///
+/// Pipeline:
+///   Text   →  Mercury-2  →  AnalysisResult
+///   Image  →  OCR.space  →  Mercury-2  →  AnalysisResult  (same as text)
+///   URL    →  HTTP fetch  →  Mercury-2  →  AnalysisResult  (same as text)
+/// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class DirectAnalysisService {
-  // ── OCR.space Free API ───────────────────────────────────────────────────
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  API CONFIGURATION
+  // ══════════════════════════════════════════════════════════════════════
+
+  /// Inception Labs Mercury-2 — the MAIN analyzer
+  static const String _inceptionKey = 'sk_0f303a19575726c1579d899453ad8c37';
+  static const String _inceptionUrl = 'https://api.inceptionlabs.ai/v1/chat/completions';
+  static const String _inceptionModel = 'mercury-2';          // ← full model, NOT coder-small
+
+  /// OCR.space — free text extraction from images
   static const String _ocrSpaceKey = 'helloworld';
   static const String _ocrSpaceUrl = 'https://api.ocr.space/parse/image';
 
-  // ────────────────────────────────────────────────────────────────────────
-  // PUBLIC API
-  // ────────────────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════
+  //  SYSTEM PROMPT  (identical to main.py backend)
+  // ══════════════════════════════════════════════════════════════════════
 
-  /// Analyze plain text — try backend first, fall back to local.
+  static const String _systemPrompt = '''
+You are EchoGuard, an advanced, highly-accurate AI fact-checking engine.
+Analyze the user's claim. You are expected to provide the FINAL analysis.
+Do NOT output any intermediate search queries or tool calls.
+You MUST output ONLY a single valid JSON object matching this exact structure:
+{
+  "credibility": <float between 0 and 100>,
+  "fake_probability": <float between 0 and 100>,
+  "manipulation": {
+    "level": "<string: HIGH, MEDIUM, LOW>",
+    "emotion": "<string: e.g., outrage, fear, neutral, excitement>",
+    "intensity": <float between 0 and 100>,
+    "keywords": ["<string>", "<string>"]
+  },
+  "bias": {
+    "leaning": "<string: LEFT, RIGHT, NEUTRAL, BIAS-FREE>",
+    "confidence": <float between 0 and 100>,
+    "propaganda_flag": <boolean>
+  },
+  "source_reliability": {
+    "level": "<string: HIGH, MEDIUM, LOW>",
+    "score": <integer between 0 and 100>,
+    "domain": "<string: primarily cross-referenced domain, e.g., reuters.com>"
+  },
+  "clickbait": {
+    "is_clickbait": <boolean>,
+    "probability": <float between 0 and 100>
+  },
+  "balanced_views": [
+    "<string: Title of article - domain.com>",
+    "<string: Title of article - domain.com>"
+  ],
+  "ai_reasoning": "<string: 2-3 sentences explaining your verdict and the sources you checked>"
+}
+
+Rules:
+1. "credibility" is your main 0-100 score. 100=absolutely true, 0=absolutely false.
+2. "balanced_views" must contain 2-3 actual article headlines and their domains that you found via web search. This is CRITICAL.
+3. Be objective. Your ENTIRE output must be the JSON structure above. Do not output anything else.
+''';
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  PUBLIC API
+  // ══════════════════════════════════════════════════════════════════════
+
+  /// Analyze plain text — Inception Mercury-2 primary, local fallback.
   static Future<AnalysisResult> analyzeText(String text) async {
     if (text.trim().isEmpty) throw Exception('No text provided.');
-    return _analyzeWithBackendFallback(text.trim());
+    return _analyzeViaInception(text.trim());
   }
 
-  /// Analyze a URL — try backend first, fall back to local.
+  /// Analyze a URL — fetch page content, then run through Inception.
   static Future<AnalysisResult> analyzeUrl(String url) async {
-    // Try backend /analyze-url first
-    try {
-      final response = await http.post(
-        Uri.parse('${AppConfig.backendUrl}/analyze-url'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'url': url}),
-      ).timeout(const Duration(seconds: 20));
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
-        return _parseResult(json);
-      }
-    } catch (_) {}
-
-    // Fallback: fetch page text locally and analyze
     String pageText;
     try {
       final resp = await http.get(Uri.parse(url),
-          headers: {'User-Agent': 'Mozilla/5.0'}).timeout(const Duration(seconds: 15));
+          headers: {'User-Agent': 'Mozilla/5.0'})
+          .timeout(const Duration(seconds: 15));
       pageText = resp.body
           .replaceAll(RegExp(r'<[^>]+>'), ' ')
           .replaceAll(RegExp(r'\s+'), ' ')
@@ -54,59 +101,20 @@ class DirectAnalysisService {
     } catch (_) {
       pageText = url;
     }
-    return _analyzeWithBackendFallback(pageText);
+    return _analyzeViaInception('Article from $url:\n$pageText');
   }
 
-  /// Modular OCR: extract text from base64 image via OCR.space (free)
-  static Future<String> extractTextFromImage(String base64Image) async {
-    final mimeType = _detectMime(base64Image);
-    final base64Url = 'data:$mimeType;base64,$base64Image';
-
-    final request = http.MultipartRequest('POST', Uri.parse(_ocrSpaceUrl));
-    request.fields['apikey'] = _ocrSpaceKey;
-    request.fields['language'] = 'eng';
-    request.fields['isOverlayRequired'] = 'false';
-    request.fields['base64Image'] = base64Url;
-
-    final streamedResponse = await request.send().timeout(const Duration(seconds: 45));
-    final response = await http.Response.fromStream(streamedResponse);
-
-    if (response.statusCode != 200) {
-      throw Exception('OCR.space API error ${response.statusCode}: ${response.body}');
-    }
-
-    final data = jsonDecode(response.body);
-
-    if (data['IsErroredOnProcessing'] == true) {
-      final errorMsg = data['ErrorMessage']?.toString() ?? 'Unknown OCR error';
-      throw Exception('OCR.space processing error: $errorMsg');
-    }
-
-    final parsedResults = data['ParsedResults'] as List<dynamic>?;
-    if (parsedResults == null || parsedResults.isEmpty) {
-      throw Exception('OCR.space returned no parsed results.');
-    }
-
-    final text = parsedResults[0]['ParsedText']?.toString() ?? '';
-    if (text.trim().isEmpty) {
-      throw Exception('No readable text found in image.');
-    }
-
-    return text.trim();
-  }
-
-  /// Analyze an image:
-  ///   Step 1: OCR.space extracts text
-  ///   Step 2: Send extracted text to backend /analyze (same as text input)
-  ///   Fallback: local heuristic if backend unavailable
+  /// Analyze an image — OCR.space extracts text, then Inception analyzes it.
+  /// This is the SAME pipeline as text input — OCR just grabs the text first.
   static Future<AnalysisResult> analyzeImage(String base64Image) async {
-    // Step 1: Extract text via OCR.space
+    // ── Step 1: Extract text via OCR.space ──────────────────────────────
     final extractedText = await extractTextFromImage(base64Image);
+    print('[EchoGuard] OCR extracted ${extractedText.length} chars');
 
-    // Step 2: Send the extracted text through the SAME pipeline as text input
-    final result = await _analyzeWithBackendFallback(extractedText);
+    // ── Step 2: Feed extracted text into Inception (same as typing it) ──
+    final result = await _analyzeViaInception(extractedText);
 
-    // Attach the OCR text to the result
+    // Attach the OCR text to the result for display
     return AnalysisResult(
       credibility: result.credibility,
       fakeProbability: result.fakeProbability,
@@ -120,225 +128,121 @@ class DirectAnalysisService {
     );
   }
 
-  // ────────────────────────────────────────────────────────────────────────
-  // BACKEND-FIRST, LOCAL-FALLBACK STRATEGY
-  // ────────────────────────────────────────────────────────────────────────
+  /// Extract text from a base64 image using OCR.space (free, no key needed).
+  static Future<String> extractTextFromImage(String base64Image) async {
+    final mimeType = _detectMime(base64Image);
+    final base64Url = 'data:$mimeType;base64,$base64Image';
 
-  /// Try backend /analyze first. If it fails, use local heuristic.
-  static Future<AnalysisResult> _analyzeWithBackendFallback(String text) async {
-    // ── Attempt 1: Backend /analyze endpoint (Mercury-2 AI) ──────────────
+    final request = http.MultipartRequest('POST', Uri.parse(_ocrSpaceUrl));
+    request.fields['apikey'] = _ocrSpaceKey;
+    request.fields['language'] = 'eng';
+    request.fields['isOverlayRequired'] = 'false';
+    request.fields['base64Image'] = base64Url;
+
+    final streamedResponse = await request.send()
+        .timeout(const Duration(seconds: 45));
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode != 200) {
+      throw Exception('OCR.space error ${response.statusCode}: ${response.body}');
+    }
+
+    final data = jsonDecode(response.body);
+    if (data['IsErroredOnProcessing'] == true) {
+      throw Exception('OCR error: ${data['ErrorMessage'] ?? 'Unknown'}');
+    }
+
+    final parsedResults = data['ParsedResults'] as List<dynamic>?;
+    if (parsedResults == null || parsedResults.isEmpty) {
+      throw Exception('OCR returned no results.');
+    }
+
+    final text = parsedResults[0]['ParsedText']?.toString() ?? '';
+    if (text.trim().isEmpty) {
+      throw Exception('No readable text found in image.');
+    }
+    return text.trim();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  INCEPTION MERCURY-2 — PRIMARY ANALYSIS ENGINE
+  // ══════════════════════════════════════════════════════════════════════
+
+  /// Calls Inception Labs Mercury-2 API directly from the phone.
+  /// Falls back to local heuristic ONLY if the API is completely unreachable.
+  static Future<AnalysisResult> _analyzeViaInception(String text) async {
     try {
+      print('[EchoGuard] Calling Inception Mercury-2...');
+
       final response = await http.post(
-        Uri.parse('${AppConfig.backendUrl}/analyze'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'text': text}),
-      ).timeout(const Duration(seconds: 30));
+        Uri.parse(_inceptionUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_inceptionKey',
+        },
+        body: jsonEncode({
+          'model': _inceptionModel,
+          'messages': [
+            {'role': 'system', 'content': _systemPrompt},
+            {'role': 'user', 'content': text},
+          ],
+          'response_format': {'type': 'json_object'},
+          'max_tokens': 1500,
+          'temperature': 0.1,       // low temp = consistent, factual output
+        }),
+      ).timeout(const Duration(seconds: 45));
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
-        final result = _parseResult(json);
-        // Only accept backend result if it looks meaningful
-        // (the backend returns 50/50 on total failure, which is its fallback)
-        return result;
+      if (response.statusCode != 200) {
+        print('[EchoGuard] Inception API HTTP ${response.statusCode}: ${response.body}');
+        throw Exception('Inception API error ${response.statusCode}');
       }
+
+      final data = jsonDecode(response.body);
+      final content = data['choices']?[0]?['message']?['content'] as String?;
+
+      if (content == null || content.trim().isEmpty) {
+        throw Exception('Inception returned empty content');
+      }
+
+      // Robust JSON extraction — handle markdown fences, extra text, etc.
+      final json = _extractJson(content);
+      print('[EchoGuard] Inception credibility: ${json['credibility']}');
+      return _parseResult(json);
+
     } catch (e) {
-      // Backend unreachable — proceed to local fallback
-      print('[EchoGuard] Backend unreachable ($e), using local analysis');
+      print('[EchoGuard] Inception failed ($e), falling back to local analysis');
+      return _analyzeLocally(text);
     }
-
-    // ── Attempt 2: Local heuristic analysis ──────────────────────────────
-    return _analyzeLocally(text);
   }
 
-  // ────────────────────────────────────────────────────────────────────────
-  // LOCAL NLP HEURISTIC ENGINE (offline fallback)
-  // ────────────────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════
+  //  JSON EXTRACTION  (robust — handles markdown, extra text, etc.)
+  // ══════════════════════════════════════════════════════════════════════
 
-  /// Words that strongly indicate sensationalism / clickbait
-  static const List<String> _clickbaitWords = [
-    'shocking', 'unbelievable', 'you won\'t believe', 'mind-blowing',
-    'jaw-dropping', 'insane', 'epic', 'must see', 'this will', 'omg',
-    'what happened next', 'secret', 'they don\'t want you to know',
-    'exposed', 'gone wrong', 'destroyed', 'slammed', 'blasted',
-    'bombshell', 'breaking', 'just in', 'urgent', 'alert',
-    'exclusive', 'leaked', 'banned', 'censored', 'cover-up',
-  ];
+  static Map<String, dynamic> _extractJson(String raw) {
+    final trimmed = raw.trim();
 
-  /// Words indicating emotional manipulation
-  static const List<String> _manipulationWords = [
-    'outrage', 'fury', 'terrifying', 'horrifying', 'disgusting',
-    'heartbreaking', 'devastating', 'nightmare', 'catastrophe',
-    'crisis', 'panic', 'emergency', 'threat', 'danger', 'warning',
-    'scam', 'fraud', 'hoax', 'conspiracy', 'propaganda',
-    'brainwash', 'lie', 'lies', 'fake', 'rigged', 'corrupt',
-    'evil', 'traitor', 'enemy', 'destroy', 'attack',
-  ];
+    // 1. Try direct parse
+    try { return jsonDecode(trimmed) as Map<String, dynamic>; } catch (_) {}
 
-  /// Words strongly associated with unreliable / fake news patterns
-  static const List<String> _fakeNewsPatterns = [
-    'big pharma', 'mainstream media', 'deep state', 'new world order',
-    'wake up sheeple', 'do your own research', 'they are hiding',
-    'the truth about', 'what they don\'t tell you', 'exposed the truth',
-    'government doesn\'t want', 'miracle cure', 'doctors hate',
-    'one weird trick', '100% proven', 'scientifically proven',
-    'share before deleted', 'share before removed', 'going viral',
-  ];
-
-  /// Words/patterns indicating credible reporting
-  static const List<String> _credibilityWords = [
-    'according to', 'study shows', 'research indicates', 'data suggests',
-    'peer-reviewed', 'published in', 'university of', 'institute of',
-    'official statement', 'spokesperson said', 'confirmed by',
-    'evidence suggests', 'analysis shows', 'report finds',
-    'statistics show', 'survey found', 'experts say',
-    'investigation reveals', 'fact-check', 'verified',
-  ];
-
-  static const List<String> _leftBiasWords = [
-    'progressive', 'equality', 'social justice', 'systemic',
-    'marginalized', 'inclusivity', 'privilege', 'oppression',
-  ];
-
-  static const List<String> _rightBiasWords = [
-    'traditional values', 'freedom', 'patriot', 'liberty',
-    'constitution', 'second amendment', 'immigration crisis',
-    'border security', 'law and order', 'woke',
-  ];
-
-  static AnalysisResult _analyzeLocally(String text) {
-    final lower = text.toLowerCase();
-    final words = lower.split(RegExp(r'\s+'));
-    final wordCount = words.length;
-
-    // Clickbait
-    final clickbaitHits = _countMatches(lower, _clickbaitWords);
-    final clickbaitScore = min(100.0, clickbaitHits * 18.0);
-    final isClickbait = clickbaitScore > 40;
-
-    // Manipulation
-    final manipHits = _countMatches(lower, _manipulationWords);
-    final manipIntensity = min(100.0, manipHits * 15.0);
-    final manipLevel = manipIntensity > 60 ? 'HIGH' : manipIntensity > 30 ? 'MEDIUM' : 'LOW';
-    final dominantEmotion = _detectEmotion(lower);
-
-    // Fake news patterns
-    final fakeHits = _countMatches(lower, _fakeNewsPatterns);
-    final fakeScore = min(100.0, fakeHits * 25.0);
-
-    // Credibility signals
-    final credHits = _countMatches(lower, _credibilityWords);
-    final credBoost = min(40.0, credHits * 10.0);
-
-    // Bias
-    final leftHits = _countMatches(lower, _leftBiasWords);
-    final rightHits = _countMatches(lower, _rightBiasWords);
-    String biasLeaning;
-    double biasConfidence;
-    if (leftHits == 0 && rightHits == 0) {
-      biasLeaning = 'NEUTRAL'; biasConfidence = 20;
-    } else if (leftHits > rightHits) {
-      biasLeaning = 'LEFT'; biasConfidence = min(90.0, (leftHits - rightHits) * 20.0 + 30);
-    } else if (rightHits > leftHits) {
-      biasLeaning = 'RIGHT'; biasConfidence = min(90.0, (rightHits - leftHits) * 20.0 + 30);
-    } else {
-      biasLeaning = 'CENTER'; biasConfidence = 40;
-    }
-    final propagandaFlag = manipIntensity > 50 && fakeScore > 30;
-
-    // Style penalties
-    final exclCount = '!'.allMatches(text).length;
-    final capsRatio = wordCount > 0
-        ? words.where((w) => w.length > 2 && w == w.toUpperCase()).length / wordCount : 0.0;
-    final stylePenalty = min(25.0, exclCount * 5.0 + capsRatio * 40.0);
-
-    // Final score
-    double credibility = 70.0;
-    credibility += credBoost;
-    credibility -= fakeScore * 0.6;
-    credibility -= clickbaitScore * 0.3;
-    credibility -= manipIntensity * 0.2;
-    credibility -= stylePenalty;
-    credibility = max(5.0, min(95.0, credibility));
-    final fakeProbability = max(5.0, min(95.0, 100 - credibility));
-
-    final srcScore = credibility.toInt();
-    final srcLevel = srcScore > 65 ? 'HIGH' : srcScore > 40 ? 'MEDIUM' : 'LOW';
-
-    // Balanced views
-    final balanced = <String>[];
-    if (credibility < 50) {
-      balanced.add('This content shows signs of sensationalism. Cross-reference with established news sources.');
-      balanced.add('Look for the same story from multiple independent outlets before sharing.');
-    } else if (credibility < 70) {
-      balanced.add('This content has mixed credibility signals. Verify key claims independently.');
-    } else {
-      balanced.add('This content appears to follow standard reporting patterns.');
+    // 2. Strip markdown code fences: ```json ... ```
+    final fenceMatch = RegExp(r'```(?:json)?\s*([\s\S]*?)\s*```').firstMatch(trimmed);
+    if (fenceMatch != null) {
+      try { return jsonDecode(fenceMatch.group(1)!) as Map<String, dynamic>; } catch (_) {}
     }
 
-    final reasoning = _buildReasoning(credibility, fakeScore, clickbaitScore,
-        manipIntensity, manipHits, clickbaitHits, fakeHits, credHits, wordCount);
-
-    final foundKeywords = <String>[];
-    for (final w in _manipulationWords) { if (lower.contains(w)) foundKeywords.add(w); }
-    for (final w in _clickbaitWords) { if (lower.contains(w) && !foundKeywords.contains(w)) foundKeywords.add(w); }
-
-    return AnalysisResult(
-      credibility: credibility,
-      fakeProbability: fakeProbability,
-      manipulation: ManipulationData(level: manipLevel, emotion: dominantEmotion, intensity: manipIntensity, keywords: foundKeywords.take(6).toList()),
-      bias: BiasData(leaning: biasLeaning, confidence: biasConfidence, propagandaFlag: propagandaFlag),
-      sourceReliability: SourceReliability(level: srcLevel, score: srcScore, domain: 'analyzed locally'),
-      clickbait: ClickbaitData(isClickbait: isClickbait, probability: clickbaitScore),
-      balancedViews: balanced,
-      aiReasoning: '[Local Analysis] $reasoning',
-    );
-  }
-
-  static int _countMatches(String text, List<String> patterns) {
-    int count = 0;
-    for (final p in patterns) { if (text.contains(p)) count++; }
-    return count;
-  }
-
-  static String _detectEmotion(String text) {
-    final emotions = {
-      'anger': ['outrage', 'fury', 'angry', 'rage', 'furious', 'attack', 'destroy'],
-      'fear': ['terrifying', 'horrifying', 'nightmare', 'threat', 'danger', 'panic', 'warning'],
-      'sadness': ['heartbreaking', 'devastating', 'tragic', 'loss', 'grief'],
-      'surprise': ['shocking', 'unbelievable', 'jaw-dropping', 'stunning', 'bombshell'],
-      'disgust': ['disgusting', 'sickening', 'appalling', 'shameful'],
-    };
-    String dominant = 'neutral';
-    int maxHits = 0;
-    for (final e in emotions.entries) {
-      int hits = 0;
-      for (final w in e.value) { if (text.contains(w)) hits++; }
-      if (hits > maxHits) { maxHits = hits; dominant = e.key; }
+    // 3. Extract first { ... } block
+    final braceMatch = RegExp(r'\{[\s\S]*\}').firstMatch(trimmed);
+    if (braceMatch != null) {
+      try { return jsonDecode(braceMatch.group(0)!) as Map<String, dynamic>; } catch (_) {}
     }
-    return dominant;
+
+    throw Exception('Could not parse JSON from Inception response: ${trimmed.substring(0, min(200, trimmed.length))}');
   }
 
-  static String _buildReasoning(double credibility, double fakeScore, double clickbaitScore,
-      double manipIntensity, int manipHits, int clickbaitHits, int fakeHits, int credHits, int wordCount) {
-    final parts = <String>[];
-    if (credibility >= 70) {
-      parts.add('This content appears credible based on language analysis.');
-    } else if (credibility >= 40) {
-      parts.add('This content has mixed credibility signals.');
-    } else {
-      parts.add('This content shows significant red flags for misinformation.');
-    }
-    if (fakeHits > 0) parts.add('Found $fakeHits known misinformation pattern(s).');
-    if (clickbaitHits > 0) parts.add('Detected $clickbaitHits clickbait indicator(s).');
-    if (manipHits > 0) parts.add('Found $manipHits emotional manipulation keyword(s).');
-    if (credHits > 0) parts.add('Contains $credHits credibility-boosting reference(s).');
-    if (wordCount < 20) parts.add('Very short text — limited analysis possible.');
-    return parts.join(' ');
-  }
-
-  // ────────────────────────────────────────────────────────────────────────
-  // SHARED HELPERS
-  // ────────────────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════
+  //  RESULT PARSER  (JSON → AnalysisResult)
+  // ══════════════════════════════════════════════════════════════════════
 
   static AnalysisResult _parseResult(Map<String, dynamic> j) {
     double _d(dynamic v, [double def = 0]) => v == null ? def : (v as num).toDouble();
@@ -379,6 +283,138 @@ class DirectAnalysisService {
       extractedText: j['extracted_text'] as String?,
     );
   }
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  LOCAL NLP FALLBACK  (offline / API error)
+  // ══════════════════════════════════════════════════════════════════════
+
+  static const _clickbaitWords = [
+    'shocking', 'unbelievable', 'you won\'t believe', 'mind-blowing',
+    'jaw-dropping', 'insane', 'epic', 'must see', 'this will', 'omg',
+    'what happened next', 'secret', 'they don\'t want you to know',
+    'exposed', 'gone wrong', 'destroyed', 'slammed', 'blasted',
+    'bombshell', 'breaking', 'just in', 'urgent', 'alert',
+    'exclusive', 'leaked', 'banned', 'censored', 'cover-up',
+  ];
+
+  static const _manipulationWords = [
+    'outrage', 'fury', 'terrifying', 'horrifying', 'disgusting',
+    'heartbreaking', 'devastating', 'nightmare', 'catastrophe',
+    'crisis', 'panic', 'emergency', 'threat', 'danger', 'warning',
+    'scam', 'fraud', 'hoax', 'conspiracy', 'propaganda',
+    'brainwash', 'lie', 'lies', 'fake', 'rigged', 'corrupt',
+    'evil', 'traitor', 'enemy', 'destroy', 'attack',
+  ];
+
+  static const _fakeNewsPatterns = [
+    'big pharma', 'mainstream media', 'deep state', 'new world order',
+    'wake up sheeple', 'do your own research', 'they are hiding',
+    'the truth about', 'what they don\'t tell you', 'exposed the truth',
+    'government doesn\'t want', 'miracle cure', 'doctors hate',
+    'one weird trick', '100% proven', 'scientifically proven',
+    'share before deleted', 'share before removed', 'going viral',
+  ];
+
+  static const _credibilityWords = [
+    'according to', 'study shows', 'research indicates', 'data suggests',
+    'peer-reviewed', 'published in', 'university of', 'institute of',
+    'official statement', 'spokesperson said', 'confirmed by',
+    'evidence suggests', 'analysis shows', 'report finds',
+    'statistics show', 'survey found', 'experts say',
+    'investigation reveals', 'fact-check', 'verified',
+  ];
+
+  static const _leftBiasWords = [
+    'progressive', 'equality', 'social justice', 'systemic',
+    'marginalized', 'inclusivity', 'privilege', 'oppression',
+  ];
+
+  static const _rightBiasWords = [
+    'traditional values', 'freedom', 'patriot', 'liberty',
+    'constitution', 'second amendment', 'immigration crisis',
+    'border security', 'law and order', 'woke',
+  ];
+
+  static AnalysisResult _analyzeLocally(String text) {
+    final lower = text.toLowerCase();
+    final words = lower.split(RegExp(r'\s+'));
+    final wordCount = words.length;
+
+    final clickbaitHits = _countMatches(lower, _clickbaitWords);
+    final clickbaitScore = min(100.0, clickbaitHits * 18.0);
+    final manipHits = _countMatches(lower, _manipulationWords);
+    final manipIntensity = min(100.0, manipHits * 15.0);
+    final manipLevel = manipIntensity > 60 ? 'HIGH' : manipIntensity > 30 ? 'MEDIUM' : 'LOW';
+    final fakeHits = _countMatches(lower, _fakeNewsPatterns);
+    final fakeScore = min(100.0, fakeHits * 25.0);
+    final credHits = _countMatches(lower, _credibilityWords);
+    final credBoost = min(40.0, credHits * 10.0);
+
+    final leftHits = _countMatches(lower, _leftBiasWords);
+    final rightHits = _countMatches(lower, _rightBiasWords);
+    String biasLeaning = 'NEUTRAL';
+    double biasConf = 20;
+    if (leftHits > rightHits) { biasLeaning = 'LEFT'; biasConf = min(90.0, (leftHits - rightHits) * 20.0 + 30); }
+    else if (rightHits > leftHits) { biasLeaning = 'RIGHT'; biasConf = min(90.0, (rightHits - leftHits) * 20.0 + 30); }
+
+    final exclCount = '!'.allMatches(text).length;
+    final capsRatio = wordCount > 0
+        ? words.where((w) => w.length > 2 && w == w.toUpperCase()).length / wordCount : 0.0;
+    final stylePenalty = min(25.0, exclCount * 5.0 + capsRatio * 40.0);
+
+    double cred = 70.0 + credBoost - fakeScore * 0.6 - clickbaitScore * 0.3 - manipIntensity * 0.2 - stylePenalty;
+    cred = max(5.0, min(95.0, cred));
+
+    final foundKw = <String>[];
+    for (final w in _manipulationWords) { if (lower.contains(w)) foundKw.add(w); }
+    for (final w in _clickbaitWords) { if (lower.contains(w) && !foundKw.contains(w)) foundKw.add(w); }
+
+    final parts = <String>['[Offline Analysis]'];
+    if (cred >= 70) parts.add('Content appears credible.');
+    else if (cred >= 40) parts.add('Mixed credibility signals.');
+    else parts.add('Significant misinformation red flags.');
+    if (fakeHits > 0) parts.add('$fakeHits misinformation pattern(s) detected.');
+    if (clickbaitHits > 0) parts.add('$clickbaitHits clickbait indicator(s).');
+    if (manipHits > 0) parts.add('$manipHits manipulation keyword(s).');
+    if (wordCount < 20) parts.add('Very short text — limited analysis.');
+
+    return AnalysisResult(
+      credibility: cred,
+      fakeProbability: max(5.0, min(95.0, 100 - cred)),
+      manipulation: ManipulationData(level: manipLevel, emotion: _detectEmotion(lower), intensity: manipIntensity, keywords: foundKw.take(6).toList()),
+      bias: BiasData(leaning: biasLeaning, confidence: biasConf, propagandaFlag: manipIntensity > 50 && fakeScore > 30),
+      sourceReliability: SourceReliability(level: cred > 65 ? 'HIGH' : cred > 40 ? 'MEDIUM' : 'LOW', score: cred.toInt(), domain: 'offline analysis'),
+      clickbait: ClickbaitData(isClickbait: clickbaitScore > 40, probability: clickbaitScore),
+      balancedViews: cred < 50
+          ? ['Cross-reference with established news sources before sharing.', 'Look for the same story from multiple independent outlets.']
+          : ['Content follows standard reporting patterns.'],
+      aiReasoning: parts.join(' '),
+    );
+  }
+
+  static int _countMatches(String text, List<String> patterns) {
+    int c = 0; for (final p in patterns) { if (text.contains(p)) c++; } return c;
+  }
+
+  static String _detectEmotion(String text) {
+    final map = {
+      'anger': ['outrage', 'fury', 'angry', 'rage', 'attack', 'destroy'],
+      'fear': ['terrifying', 'horrifying', 'nightmare', 'threat', 'danger', 'panic'],
+      'sadness': ['heartbreaking', 'devastating', 'tragic', 'loss', 'grief'],
+      'surprise': ['shocking', 'unbelievable', 'jaw-dropping', 'bombshell'],
+      'disgust': ['disgusting', 'sickening', 'appalling', 'shameful'],
+    };
+    String best = 'neutral'; int mx = 0;
+    for (final e in map.entries) {
+      int h = 0; for (final w in e.value) { if (text.contains(w)) h++; }
+      if (h > mx) { mx = h; best = e.key; }
+    }
+    return best;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  UTILITY
+  // ══════════════════════════════════════════════════════════════════════
 
   static String _detectMime(String b64) {
     try {

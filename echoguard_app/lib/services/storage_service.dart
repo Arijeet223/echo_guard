@@ -47,6 +47,15 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     final history = await getHistory();
 
+    // Dedup: skip if the same text+score was saved in the last 10 seconds
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final truncatedText = text.length > 50 ? '${text.substring(0, 50)}...' : text;
+    final isDuplicate = history.isNotEmpty &&
+        (now - history.first.id) < 10000 &&
+        history.first.text == truncatedText &&
+        (history.first.score - score).abs() < 1;
+    if (isDuplicate) return;
+
     String verdict = 'High Risk';
     if (score >= 70) {
       verdict = 'Verified';
@@ -55,15 +64,15 @@ class StorageService {
     }
 
     final item = HistoryItem(
-      id: DateTime.now().millisecondsSinceEpoch,
-      text: text.length > 50 ? '${text.substring(0, 50)}...' : text,
+      id: now,
+      text: truncatedText,
       date: DateTime.now().toString(),
       score: score,
       verdict: verdict,
     );
 
     history.insert(0, item);
-    if (history.length > 20) history.removeRange(20, history.length);
+    if (history.length > 50) history.removeRange(50, history.length);
 
     await prefs.setString(
       'eg_history',

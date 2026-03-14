@@ -4,6 +4,7 @@ import 'dart:async';
 import '../models/analysis_result.dart';
 import '../services/overlay_service.dart';
 import '../services/direct_analysis_service.dart';
+import '../services/storage_service.dart';
 import 'analysis_screen.dart';
 
 class ScanScreen extends StatefulWidget {
@@ -83,6 +84,9 @@ class _ScanScreenState extends State<ScanScreen> {
           verdictText,
           result.aiReasoning.isNotEmpty ? result.aiReasoning : 'No details available.',
         );
+
+        // Save to history immediately (safety net — also saved by AnalysisScreen)
+        StorageService.addToHistory(displayText, result.credibility);
 
         // Also push the AnalysisScreen within the app if it's active
         Navigator.push(
