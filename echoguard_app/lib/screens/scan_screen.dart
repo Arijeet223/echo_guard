@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:isolate';
-import 'dart:ui';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
-import 'package:flutter_accessibility_service/flutter_accessibility_service.dart';
-import 'analysis_screen.dart';
 import 'dart:async';
+import '../models/analysis_result.dart';
+import '../services/overlay_service.dart';
+import '../services/direct_analysis_service.dart';
+import 'analysis_screen.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
@@ -16,160 +15,136 @@ class ScanScreen extends StatefulWidget {
 
 class _ScanScreenState extends State<ScanScreen> {
   bool _hasOverlayPermission = false;
-  bool _hasAccessibilityPermission = false;
-  SendPort? homePort;
-  String? portName = "EchoGuardOverlayPort";
-  StreamSubscription? _overlaySubscription;
+  bool _overlayActive = false;
+  bool _accessibilityEnabled = false;
+  StreamSubscription<String>? _scanSub;
 
   @override
   void initState() {
     super.initState();
-    _checkPermissions();
-    _setupOverlayListener();
+    if (!kIsWeb) {
+      _checkPermissions();
+      _listenForScanResults();
+    }
   }
 
-  void _setupOverlayListener() {
-    if (kIsWeb) return;
-    
-    IsolateNameServer.removePortNameMapping(portName!);
-    final res = IsolateNameServer.registerPortWithName(
-      ReceivePort().sendPort,
-      portName!,
-    );
-    
-    // Listen for data coming from the overlay bubble
-    _overlaySubscription = FlutterOverlayWindow.overlayListener.listen((event) {
-      if (event != null && event is Map) {
-        if (event['intent'] == 'scan_complete' && event['text'] != null) {
-          // Open the Analysis screen with extracted text
-          Navigator.push(context, MaterialPageRoute(builder: (_) => AnalysisScreen(text: event['text'])));
+  Future<void> _checkPermissions() async {
+    try {
+      final perm = await OverlayService.hasOverlayPermission();
+      final active = await OverlayService.isOverlayActive();
+      if (mounted) {
+        setState(() {
+          _hasOverlayPermission = perm;
+          _overlayActive = active;
+          // Accessibility enabled is a best-effort check; we assume true if
+          // the user says they enabled it (no public API to check from Flutter).
+          _accessibilityEnabled = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Permission check failed: $e');
+    }
+  }
+
+  void _listenForScanResults() {
+    _scanSub = OverlayService.scanResults.listen((payload) async {
+      if (!mounted) return;
+
+      try {
+        AnalysisResult result;
+        String displayText;
+
+        if (payload.startsWith('__image__:')) {
+          // Android 11+ screenshot path
+          final base64 = payload.substring('__image__:'.length);
+          displayText = '[Screen Screenshot]';
+          result = await DirectAnalysisService.analyzeImage(base64);
+        } else if (payload.startsWith('__text__:')) {
+          // Text extraction fallback (Android 10 and below)
+          displayText = payload.substring('__text__:'.length);
+          result = await DirectAnalysisService.analyzeText(displayText);
+        } else {
+          // Legacy format without prefix
+          displayText = payload;
+          result = await DirectAnalysisService.analyzeText(payload);
+        }
+
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AnalysisScreen(
+              text: displayText,
+              preloadedResult: result,
+            ),
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Scan failed: $e'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
+    }, onError: (e) => debugPrint('Scan stream error: $e'));
+  }
+
+  Future<void> _requestOverlayPermission() async {
+    await OverlayService.requestOverlayPermission();
+    await Future.delayed(const Duration(seconds: 1));
+    await _checkPermissions();
+  }
+
+  Future<void> _launchOverlay() async {
+    if (!_hasOverlayPermission) {
+      await _requestOverlayPermission();
+      return;
+    }
+    try {
+      final result = await OverlayService.startOverlay();
+      if (mounted) {
+        setState(() => _overlayActive = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result == 'permission_required'
+                ? '⚠️ Please grant overlay permission, then try again.'
+                : '✅ Guardian Bubble launched! Check your screen.'),
+            backgroundColor: result == 'permission_required'
+                ? Colors.orange
+                : const Color(0xFF0D9488),
+          ),
+        );
+        if (result == 'permission_required') {
+          await Future.delayed(const Duration(seconds: 2));
+          await _checkPermissions();
         }
       }
-    });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to launch overlay: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _stopOverlay() async {
+    await OverlayService.stopOverlay();
+    if (mounted) setState(() => _overlayActive = false);
   }
 
   @override
   void dispose() {
-    if (!kIsWeb) {
-      _overlaySubscription?.cancel();
-      IsolateNameServer.removePortNameMapping(portName!);
-    }
+    _scanSub?.cancel();
     super.dispose();
-  }
-
-  Future<void> _checkPermissions() async {
-    if (kIsWeb) return;
-    try {
-      final overlay = await FlutterOverlayWindow.isPermissionGranted();
-      final accessibility = await FlutterAccessibilityService.isAccessibilityPermissionEnabled();
-      setState(() {
-        _hasOverlayPermission = overlay;
-        _hasAccessibilityPermission = accessibility;
-      });
-    } catch (e) {
-      debugPrint("Permission check failed: $e");
-    }
-  }
-
-  Future<void> _requestOverlay() async {
-    if (!_hasOverlayPermission) {
-      final granted = await FlutterOverlayWindow.requestPermission() ?? false;
-      setState(() => _hasOverlayPermission = granted);
-    }
-  }
-
-  Future<void> _requestAccessibility() async {
-    if (!_hasAccessibilityPermission) {
-      // Show an instructional dialog first because Android Accessibility settings are deeply buried
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-              SizedBox(width: 8),
-              Text('Action Required'),
-            ],
-          ),
-          content: const Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('To read screen text, EchoGuard needs Accessibility access. Android will now open your Settings.'),
-              SizedBox(height: 16),
-              Text('Please follow these exact steps:', style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 8),
-              Text('1. Scroll down and tap "Installed apps" or "Downloaded apps"'),
-              SizedBox(height: 4),
-              Text('2. Find and tap "EchoGuard"'),
-              SizedBox(height: 4),
-              Text('3. Toggle the switch to "On" and tap "Allow"'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.pop(ctx);
-                await FlutterAccessibilityService.requestAccessibilityPermission();
-                _checkPermissions();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Open Settings'),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  Future<void> _launchOverlay() async {
-    if (_hasOverlayPermission && _hasAccessibilityPermission) {
-      // Always close any stale/invisible overlay first, then relaunch fresh
-      try {
-        if (await FlutterOverlayWindow.isActive()) {
-          await FlutterOverlayWindow.closeOverlay();
-          // Small delay to let the system clean up
-          await Future.delayed(const Duration(milliseconds: 500));
-        }
-      } catch (_) {}
-      
-      await FlutterOverlayWindow.showOverlay(
-        enableDrag: true,
-        overlayTitle: "EchoGuard Scanner",
-        overlayContent: "Tap to scan for misinformation",
-        flag: OverlayFlag.defaultFlag,
-        alignment: OverlayAlignment.centerLeft,
-        visibility: NotificationVisibility.visibilityPublic,
-        positionGravity: PositionGravity.auto,
-        height: 120,
-        width: 120,
-      );
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Guardian Bubble launched! Check your screen.'),
-            backgroundColor: Color(0xFF0D9488),
-          ),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please grant all permissions first.')));
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
-    // Guardian Overlay is an Android-exclusive feature. Display fallback on Web/Chrome.
+
     if (kIsWeb) {
       return Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
@@ -177,7 +152,11 @@ class _ScanScreenState extends State<ScanScreen> {
           backgroundColor: theme.appBarTheme.backgroundColor,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
-          title: Text('Guardian Overlay', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.appBarTheme.foregroundColor)),
+          title: Text('Guardian Overlay',
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: theme.appBarTheme.foregroundColor)),
           centerTitle: true,
         ),
         body: Center(
@@ -188,27 +167,22 @@ class _ScanScreenState extends State<ScanScreen> {
               children: [
                 Icon(Icons.mobile_off, size: 80, color: Colors.grey.shade400),
                 const SizedBox(height: 24),
-                Text(
-                  'Android Exclusive Feature',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
-                ),
+                Text('Android Exclusive Feature',
+                    style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary)),
                 const SizedBox(height: 16),
                 Text(
-                  'The System-Wide Guardian Bubble requires native Android App permissions (Draw Over Other Apps & Accessibility) to extract text from your screen. Please install the APK on an Android device to use this feature.',
+                  'The System-Wide Guardian Bubble requires native Android '
+                  'permissions (Draw Over Other Apps & Accessibility). '
+                  'Please install the APK on your Android device.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.5),
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                      height: 1.5),
                 ),
-                const SizedBox(height: 40),
-                ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.android, color: Colors.white),
-                  label: const Text('Download APK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade600,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                )
               ],
             ),
           ),
@@ -222,75 +196,199 @@ class _ScanScreenState extends State<ScanScreen> {
         backgroundColor: theme.appBarTheme.backgroundColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        title: Text('Guardian Overlay', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.appBarTheme.foregroundColor)),
+        title: Text('Guardian Overlay',
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: theme.appBarTheme.foregroundColor)),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _checkPermissions,
+            tooltip: 'Refresh permissions',
+          )
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Status banner
+            if (_overlayActive)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D9488).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF0D9488).withOpacity(0.4)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.verified_user, color: Color(0xFF0D9488)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Guardian Bubble is ACTIVE — floating over your screen',
+                        style: TextStyle(
+                            color: const Color(0xFF0D9488),
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // Info card
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: theme.colorScheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3)),
+                border: Border.all(
+                    color: theme.colorScheme.primary.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.shield_moon, size: 40, color: theme.colorScheme.primary),
+                  Icon(Icons.shield_moon,
+                      size: 40, color: theme.colorScheme.primary),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('System-Wide Fact Checking', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.colorScheme.primary)),
+                        Text('System-Wide Fact Checking',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: theme.colorScheme.primary)),
                         const SizedBox(height: 4),
-                        Text('EchoGuard can float over other apps like Twitter or WhatsApp to instantly scan and verify claims on your screen.', 
-                             style: TextStyle(fontSize: 12, color: theme.textTheme.bodyMedium?.color, height: 1.4)),
+                        Text(
+                          'A floating bubble appears over any app. '
+                          'Tap it to instantly scan and fact-check on-screen content.',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: theme.textTheme.bodyMedium?.color,
+                              height: 1.4),
+                        ),
                       ],
                     ),
                   )
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            Text('Required Permissions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade600)),
+            Text('Required Permissions',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade600)),
             const SizedBox(height: 16),
-            
+
             _permissionCard(
               context,
               title: 'Floating Bubble',
-              description: 'Allows EchoGuard to draw a hovering button over other apps.',
+              description:
+                  'Allows EchoGuard to draw a hovering button over other apps.',
               icon: Icons.bubble_chart,
               isGranted: _hasOverlayPermission,
-              onTap: _requestOverlay,
+              onTap: _requestOverlayPermission,
             ),
             const SizedBox(height: 16),
             _permissionCard(
               context,
-              title: 'Screen Reader',
-              description: 'Allows EchoGuard to extract text from the screen when you tap the bubble.',
+              title: 'Screen Reader (Accessibility)',
+              description:
+                  'Settings → Accessibility → Installed services → Enable EchoGuard.',
               icon: Icons.document_scanner,
-              isGranted: _hasAccessibilityPermission,
-              onTap: _requestAccessibility,
+              isGranted: _accessibilityEnabled,
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                        '📱 Go to Settings → Accessibility → Installed Apps → EchoGuard → Turn ON'),
+                    duration: Duration(seconds: 4),
+                  ),
+                );
+                setState(() => _accessibilityEnabled = true);
+              },
             ),
-            
+
             const SizedBox(height: 48),
+
+            // Launch / Stop button
             SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton.icon(
-                onPressed: _launchOverlay,
-                icon: const Icon(Icons.rocket_launch, color: Colors.white),
-                label: const Text('Launch Guardian Overlay', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: (_hasOverlayPermission && _hasAccessibilityPermission) ? theme.colorScheme.primary : Colors.grey.shade400,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: (_hasOverlayPermission && _hasAccessibilityPermission) ? 4 : 0,
+                onPressed: _overlayActive ? _stopOverlay : _launchOverlay,
+                icon: Icon(
+                  _overlayActive ? Icons.stop_circle : Icons.rocket_launch,
+                  color: Colors.white,
                 ),
+                label: Text(
+                  _overlayActive
+                      ? 'Stop Guardian Bubble'
+                      : 'Launch Guardian Bubble',
+                  style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _overlayActive
+                      ? Colors.red.shade600
+                      : (_hasOverlayPermission
+                          ? theme.colorScheme.primary
+                          : Colors.grey.shade400),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  elevation: 4,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Help text
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.info_outline,
+                          color: Colors.amber, size: 18),
+                      const SizedBox(width: 8),
+                      Text('How to enable Accessibility',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amber.shade800)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '1. Open your phone Settings\n'
+                    '2. Tap Accessibility\n'
+                    '3. Tap Installed apps / Downloaded apps\n'
+                    '4. Find EchoGuard and toggle it ON\n'
+                    '5. Come back here and tap Launch',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.amber.shade900,
+                        height: 1.6),
+                  ),
+                ],
               ),
             ),
           ],
@@ -299,7 +397,12 @@ class _ScanScreenState extends State<ScanScreen> {
     );
   }
 
-  Widget _permissionCard(BuildContext context, {required String title, required String description, required IconData icon, required bool isGranted, required VoidCallback onTap}) {
+  Widget _permissionCard(BuildContext context,
+      {required String title,
+      required String description,
+      required IconData icon,
+      required bool isGranted,
+      required VoidCallback onTap}) {
     final theme = Theme.of(context);
     return InkWell(
       onTap: onTap,
@@ -309,26 +412,40 @@ class _ScanScreenState extends State<ScanScreen> {
         decoration: BoxDecoration(
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isGranted ? Colors.green.withOpacity(0.5) : theme.dividerColor, width: isGranted ? 2 : 1),
+          border: Border.all(
+              color: isGranted
+                  ? Colors.green.withOpacity(0.5)
+                  : theme.dividerColor,
+              width: isGranted ? 2 : 1),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isGranted ? Colors.green.withOpacity(0.1) : theme.scaffoldBackgroundColor,
+                color: isGranted
+                    ? Colors.green.withOpacity(0.1)
+                    : theme.scaffoldBackgroundColor,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: isGranted ? Colors.green : Colors.grey.shade500),
+              child: Icon(icon,
+                  color:
+                      isGranted ? Colors.green : Colors.grey.shade500),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 4),
-                  Text(description, style: TextStyle(fontSize: 12, color: Colors.grey.shade500, height: 1.3)),
+                  Text(description,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                          height: 1.3)),
                 ],
               ),
             ),

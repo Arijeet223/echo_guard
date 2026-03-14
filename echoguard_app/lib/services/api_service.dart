@@ -1,59 +1,32 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/analysis_result.dart';
 import '../config.dart';
+import 'direct_analysis_service.dart';
 
+/// Routes ALL calls directly to Gemini and Mercury.
+/// No local backend needed, works on Web, Android, and iOS.
 class ApiService {
-  // Use central config; fallback to localhost for web browser testing
-  static String get baseUrl =>
-      kIsWeb ? AppConfig.localUrl : AppConfig.backendUrl;
-
   static Future<AnalysisResult> analyzeText(String text) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/analyze'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'text': text}),
-    );
-
-    if (response.statusCode == 200) {
-      return AnalysisResult.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception('Failed to analyze text: ${response.statusCode}');
-    }
-  }
-
-  static Future<void> sendFeedback(String feedback) async {
-    await http.post(
-      Uri.parse('$baseUrl/feedback'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'feedback': feedback}),
-    );
+    return DirectAnalysisService.analyzeText(text);
   }
 
   static Future<AnalysisResult> analyzeImage(String base64Image) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/analyze-image'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'image_base64': base64Image}),
-    );
-    if (response.statusCode == 200) {
-      return AnalysisResult.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception('Failed to analyze image: ${response.statusCode}');
-    }
+    return DirectAnalysisService.analyzeImage(base64Image);
   }
 
   static Future<AnalysisResult> analyzeUrl(String url) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/analyze-url'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'url': url}),
-    );
-    if (response.statusCode == 200) {
-      return AnalysisResult.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception('Failed to analyze URL: ${response.statusCode}');
-    }
+    return DirectAnalysisService.analyzeUrl(url);
+  }
+
+  static Future<void> sendFeedback(String feedback) async {
+    // Best-effort; doesn't throw on failure
+    try {
+      await http.post(
+        Uri.parse('${AppConfig.localUrl}/feedback'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'feedback': feedback}),
+      ).timeout(const Duration(seconds: 5));
+    } catch (_) {}
   }
 }

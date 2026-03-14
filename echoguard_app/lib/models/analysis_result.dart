@@ -7,6 +7,7 @@ class AnalysisResult {
   final ClickbaitData clickbait;
   final List<String> balancedViews;
   final String aiReasoning;
+  final String? extractedText;  // populated for image/URL analysis
 
   AnalysisResult({
     required this.credibility,
@@ -17,6 +18,7 @@ class AnalysisResult {
     required this.clickbait,
     required this.balancedViews,
     required this.aiReasoning,
+    this.extractedText,
   });
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class AnalysisResult {
       clickbait: ClickbaitData.fromJson(json['clickbait']),
       balancedViews: List<String>.from(json['balanced_views'] ?? []),
       aiReasoning: json['ai_reasoning'] ?? '',
+      extractedText: json['extracted_text'] as String?,
     );
   }
 }

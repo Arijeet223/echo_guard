@@ -7,7 +7,8 @@ import '../services/storage_service.dart';
 
 class AnalysisScreen extends StatefulWidget {
   final String text;
-  const AnalysisScreen({super.key, required this.text});
+  final AnalysisResult? preloadedResult;
+  const AnalysisScreen({super.key, required this.text, this.preloadedResult});
 
   @override
   State<AnalysisScreen> createState() => _AnalysisScreenState();
@@ -24,12 +25,25 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchAnalysis();
+    if (widget.preloadedResult != null) {
+      // Image analysis already done — skip the API call
+      _result = widget.preloadedResult;
+      _loading = false;
+    } else {
+      _fetchAnalysis();
+    }
   }
 
   Future<void> _fetchAnalysis() async {
     try {
-      final result = await ApiService.analyzeText(widget.text);
+      AnalysisResult result;
+      // Detect URL vs plain text
+      final t = widget.text.trim();
+      if (t.startsWith('http://') || t.startsWith('https://')) {
+        result = await ApiService.analyzeUrl(t);
+      } else {
+        result = await ApiService.analyzeText(t);
+      }
       await StorageService.addToHistory(widget.text, result.credibility);
       setState(() { _result = result; _loading = false; });
     } catch (e) {

@@ -139,28 +139,47 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 40, maxWidth: 800, maxHeight: 800);
-    
+    final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery, imageQuality: 40, maxWidth: 800, maxHeight: 800);
+
     if (image == null) return;
-    
-    // Show loading indicator
     if (!mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+      builder: (_) => const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Material(
+              color: Colors.transparent,
+              child: Text('Extracting text from image...', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
     );
-    
+
     try {
       final bytes = await image.readAsBytes();
       final base64Str = base64Encode(bytes);
       final result = await ApiService.analyzeImage(base64Str);
-      
+
       if (!mounted) return;
       Navigator.pop(context); // dismiss loading
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => AnalysisScreen(text: '[Image Analysis]')),
+        MaterialPageRoute(
+          builder: (_) => AnalysisScreen(
+            text: result.extractedText?.isNotEmpty == true
+                ? result.extractedText!
+                : '[Image Analysis]',
+            preloadedResult: result,
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -170,6 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
   }
+
 
   void _openUrlDialog() {
     final urlController = TextEditingController();
