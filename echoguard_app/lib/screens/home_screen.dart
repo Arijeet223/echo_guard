@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
+import 'dart:io';
 import 'analysis_screen.dart';
+import '../services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -10,6 +14,117 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _controller = TextEditingController();
+  bool _hasUnreadNotifications = true;
+
+  void _showNotifications(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final theme = Theme.of(context);
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          decoration: BoxDecoration(
+            color: theme.scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(border: Border(bottom: BorderSide(color: theme.dividerColor))),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Notifications', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+                    TextButton(
+                      onPressed: () {
+                        setState(() => _hasUnreadNotifications = false);
+                        Navigator.pop(context);
+                      },
+                      child: Text('Mark all as read', style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _notificationItem(
+                      title: 'High Risk Alert',
+                      body: 'A recent claim you scanned has been flagged as severe misinformation.',
+                      time: '2 mins ago',
+                      icon: Icons.warning_amber_rounded,
+                      color: Colors.red,
+                      isUnread: _hasUnreadNotifications,
+                    ),
+                    _notificationItem(
+                      title: 'Weekly Summary Ready',
+                      body: 'You scanned 14 articles this week. 8 were verified as truthful.',
+                      time: '1 day ago',
+                      icon: Icons.analytics_outlined,
+                      color: theme.colorScheme.primary,
+                      isUnread: false,
+                    ),
+                    _notificationItem(
+                      title: 'System Update',
+                      body: 'EchoGuard AI models have been updated successfully.',
+                      time: '3 days ago',
+                      icon: Icons.system_update_alt,
+                      color: Colors.grey.shade600,
+                      isUnread: false,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _notificationItem({required String title, required String body, required String time, required IconData icon, required Color color, required bool isUnread}) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isUnread ? color.withOpacity(0.05) : theme.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isUnread ? color.withOpacity(0.3) : theme.dividerColor),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.textTheme.bodyLarge?.color)),
+                    Text(time, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(body, style: TextStyle(fontSize: 12, color: theme.textTheme.bodyMedium?.color, height: 1.4)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _analyze() {
     final text = _controller.text.trim();
@@ -22,12 +137,98 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(context, MaterialPageRoute(builder: (_) => AnalysisScreen(text: text)));
   }
 
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 40, maxWidth: 800, maxHeight: 800);
+    
+    if (image == null) return;
+    
+    // Show loading indicator
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    
+    try {
+      final bytes = await image.readAsBytes();
+      final base64Str = base64Encode(bytes);
+      final result = await ApiService.analyzeImage(base64Str);
+      
+      if (!mounted) return;
+      Navigator.pop(context); // dismiss loading
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => AnalysisScreen(text: '[Image Analysis]')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // dismiss loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Image analysis failed: $e')),
+      );
+    }
+  }
+
+  void _openUrlDialog() {
+    final urlController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.link, color: Color(0xFF1D468B)),
+            SizedBox(width: 8),
+            Text('Analyze URL'),
+          ],
+        ),
+        content: TextField(
+          controller: urlController,
+          decoration: InputDecoration(
+            hintText: 'https://example.com/article',
+            hintStyle: TextStyle(color: Colors.grey.shade400),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            prefixIcon: const Icon(Icons.language),
+          ),
+          keyboardType: TextInputType.url,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final url = urlController.text.trim();
+              if (url.isEmpty) return;
+              Navigator.pop(ctx);
+              // Add https:// if missing
+              final finalUrl = url.startsWith('http') ? url : 'https://$url';
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AnalysisScreen(text: finalUrl)),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1D468B),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Analyze'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFBF7),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFDFBF7),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Row(
@@ -38,14 +239,15 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Icon(Icons.security, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 8),
-            const Text('EchoGuard', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+            Text('EchoGuard', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.appBarTheme.foregroundColor)),
           ],
         ),
         actions: [
           Stack(
             children: [
-              IconButton(icon: Icon(Icons.notifications_outlined, color: Colors.grey.shade600), onPressed: () {}),
-              Positioned(top: 12, right: 12, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle))),
+              IconButton(icon: Icon(Icons.notifications_outlined, color: Colors.grey.shade600), onPressed: () => _showNotifications(context)),
+              if (_hasUnreadNotifications)
+                Positioned(top: 12, right: 12, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle))),
             ],
           ),
         ],
@@ -61,9 +263,9 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.cardColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFF1EEE9)),
+                  border: Border.all(color: theme.dividerColor),
                   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))],
                 ),
                 child: Column(
@@ -84,9 +286,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         hintText: 'Paste text, link, or claim to analyze...',
                         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                         filled: true,
-                        fillColor: const Color(0xFFFDFBF7),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFF1EEE9))),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFF1EEE9))),
+                        fillColor: theme.scaffoldBackgroundColor,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: theme.dividerColor)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: theme.dividerColor)),
                         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF1D468B))),
                       ),
                     ),
@@ -96,9 +298,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Row(
                           children: [
-                            _iconButton(Icons.image_outlined),
+                            GestureDetector(
+                              onTap: _pickImage,
+                              child: _iconButton(Icons.image_outlined),
+                            ),
                             const SizedBox(width: 6),
-                            _iconButton(Icons.link),
+                            GestureDetector(
+                              onTap: _openUrlDialog,
+                              child: _iconButton(Icons.link),
+                            ),
                           ],
                         ),
                         ElevatedButton.icon(
@@ -125,8 +333,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Trending Claims', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
-                  TextButton(onPressed: () {}, child: const Text('View All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
+                  Text('Trending Claims', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+                  TextButton(onPressed: () {}, child: Text('View All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.colorScheme.primary))),
                 ],
               ),
             ),
@@ -168,15 +376,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _iconButton(IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFDFBF7),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFF1EEE9)),
-      ),
-      child: Icon(icon, size: 16, color: Colors.grey.shade600),
-    );
+    return Builder(builder: (context) {
+      final theme = Theme.of(context);
+      return Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: theme.dividerColor),
+        ),
+        child: Icon(icon, size: 16, color: Colors.grey.shade600),
+      );
+    });
   }
 
   Widget _trendingCard({
@@ -188,16 +399,18 @@ class _HomeScreenState extends State<HomeScreen> {
     required IconData icon,
     required Color iconBgColor,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFF1EEE9)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))],
-        ),
-        child: Column(
+    return Builder(builder: (context) {
+      final theme = Theme.of(context);
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: theme.dividerColor),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))],
+          ),
+          child: Column(
           children: [
             Container(
               height: 160,
@@ -232,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.only(top: 12),
-                    decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0xFFF1EEE9)))),
+                    decoration: BoxDecoration(border: Border(top: BorderSide(color: theme.dividerColor))),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -255,13 +468,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 }
+

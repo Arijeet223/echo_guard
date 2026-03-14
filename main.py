@@ -2,16 +2,14 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import requests
+import json
 import os
-import random
-
-# Use a pipeline from transformers for actual scoring, falling back if needed
-import torch
-from transformers import pipeline
+import base64
+from bs4 import BeautifulSoup
+import re
 
 app = FastAPI()
 
-# Allow CORS so the frontend can hit this endpoint
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,165 +18,255 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Put your key here temporarily (remove before final commit)
-NEWS_API_KEY = "0e1ce85d16c14c269fcc5e6c80e82547"
+MERCURY_API_KEY = "sk_0f303a19575726c1579d899453ad8c37"
+MERCURY_API_URL = "https://api.inceptionlabs.ai/v1/chat/completions"
 
-# 3. Replace with Zero-Shot (bart-large-mnli) for better general classification
-print("Loading Zero-Shot Classification Model...")
-try:
-    classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-    print("Model loaded successfully.")
-except Exception as e:
-    print(f"Error loading model: {e}")
-    classifier = None
+def extract_json_from_text(text: str) -> dict:
+    if not text:
+        raise ValueError("Received empty string from AI")
+    try:
+        return json.loads(text)
+    except:
+        pass
+    
+    # Try extracting markdown block
+    match = re.search(r'```(?:json)?\s*(.*?)\s*```', text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(1))
+        except:
+            pass
+            
+    # Try extracting first matching { ... } block
+    match = re.search(r'\{.*\}', text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(0))
+        except:
+            pass
+            
+    raise ValueError(f"Could not parse valid JSON from: {text[:200]}")
 
 class AnalyzeRequest(BaseModel):
     text: str
 
-from duckduckgo_search import DDGS
-
-def get_balanced_views(text):
-    # Perform a generalized DuckDuckGo web search using the first 10-15 words of the text
-    query = " ".join(text.split()[:12])
-    
-    try:
-        results = []
-        # Fallback to duckduckgo search for generalized cross-referencing
-        with DDGS() as ddgs:
-            search_results = list(ddgs.text(query, max_results=3))
-            
-            for r in search_results:
-                title = r.get("title", "News Result")
-                snippet = r.get("body", "")[:60] + "..."
-                source = r.get("href", "").split("/")[2] if "//" in r.get("href", "") else "Web Source"
-                results.append(f"{title} - {source}")
-                
-        if results:
-            return results
-    except Exception as e:
-        print("DDGS Web Search error:", str(e))
-        
-    return ["Trusted coverage not available."]
-
 @app.post("/analyze")
 async def analyze(request: AnalyzeRequest):
     text = request.text
-    print(f"\n--- New Request ---")
+    print(f"\n--- New Mercury 2 Analysis Request ---")
     print(f"Input Text: {text}")
 
-    # 1. Fetch real news related to the context
-    articles = get_balanced_views(text)
+    # Prompt engineering for the exact JSON format needed by the Flutter frontend
+    system_prompt = """You are EchoGuard, an advanced, highly-accurate AI fact-checking engine. 
+Analyze the user's claim. You are expected to provide the FINAL analysis. Do NOT output any intermediate search queries or tool calls.
+You MUST output ONLY a single valid JSON object matching this exact structure:
+{
+  "credibility": <float between 0 and 100>,
+  "fake_probability": <float between 0 and 100>,
+  "manipulation": {
+    "level": "<string: HIGH, MEDIUM, LOW>",
+    "emotion": "<string: e.g., outrage, fear, neutral, excitement>",
+    "intensity": <float between 0 and 100>,
+    "keywords": ["<string>", "<string>"]
+  },
+  "bias": {
+    "leaning": "<string: LEFT, RIGHT, NEUTRAL, BIAS-FREE>",
+    "confidence": <float between 0 and 100>,
+    "propaganda_flag": <boolean>
+  },
+  "source_reliability": {
+    "level": "<string: HIGH, MEDIUM, LOW>",
+    "score": <integer between 0 and 100>,
+    "domain": "<string: primarily cross-referenced domain, e.g., reuters.com>"
+  },
+  "clickbait": {
+    "is_clickbait": <boolean>,
+    "probability": <float between 0 and 100>
+  },
+  "balanced_views": [
+    "<string: Title of article - domain.com>",
+    "<string: Title of article - domain.com>"
+  ],
+  "ai_reasoning": "<string: 2-3 sentences explaining your verdict and the sources you checked>"
+}
+
+Rules:
+1. "credibility" is your main 0-100 score. 100=absolutely true, 0=absolutely false.
+2. "balanced_views" must contain 2-3 actual article headlines and their domains that you found via web search. This is CRITICAL.
+3. Be objective. Your ENTIRE output must be the JSON structure above. Do not output anything else.
+"""
+
+    try:
+        response = requests.post(
+            MERCURY_API_URL,
+            headers={
+                "Authorization": f"Bearer {MERCURY_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "mercury-2",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": text}
+                ],
+                "response_format": {"type": "json_object"}
+            },
+            timeout=30 # Allow time for web search
+        )
+        response.raise_for_status()
+        
+        # The API returns the JSON string in the 'content' field
+        result_json_str = response.json()['choices'][0]['message']['content']
+        result_data = extract_json_from_text(result_json_str)
+        
+        print(f"Final AI Score: {result_data.get('credibility')}")
+        return result_data
+
+    except Exception as e:
+        print(f"Mercury API Error: {str(e)}")
+        # Fallback response so the app doesn't crash on API failure
+        return {
+            "credibility": 50.0,
+            "fake_probability": 50.0,
+            "manipulation": {"level": "MEDIUM", "emotion": "neutral", "intensity": 50.0, "keywords": []},
+            "bias": {"leaning": "NEUTRAL", "confidence": 50.0, "propaganda_flag": False},
+            "source_reliability": {"level": "MEDIUM", "score": 50, "domain": "unknown"},
+            "clickbait": {"is_clickbait": False, "probability": 20.0},
+            "balanced_views": ["API Error fallback - Unable to fetch sources"],
+            "ai_reasoning": f"Analysis failed due to API connectivity issues. ({str(e)})"
+        }
+
+# ──────────────────────────────────────────────
+# IMAGE ANALYSIS — SINGLE-PASS (OCR + Fact-Check in ONE call)
+# ──────────────────────────────────────────────
+class AnalyzeImageRequest(BaseModel):
+    image_base64: str
+
+@app.post("/analyze-image")
+async def analyze_image(request: AnalyzeImageRequest):
+    print(f"\n--- New Image Analysis (Single-Pass) ---")
     
-    # Extract string formatted for frontend
-    balanced_views_strings = articles
+    system_prompt = """You are EchoGuard, an AI fact-checking engine.
+1. First, extract ALL text visible in the image.
+2. Then, fact-check the extracted claims.
+You MUST output ONLY a single valid JSON object:
+{
+  "credibility": <float 0-100>,
+  "fake_probability": <float 0-100>,
+  "manipulation": {"level": "<HIGH/MEDIUM/LOW>", "emotion": "<string>", "intensity": <float 0-100>, "keywords": ["<string>"]},
+  "bias": {"leaning": "<LEFT/RIGHT/NEUTRAL/BIAS-FREE>", "confidence": <float 0-100>, "propaganda_flag": <boolean>},
+  "source_reliability": {"level": "<HIGH/MEDIUM/LOW>", "score": <int 0-100>, "domain": "<string>"},
+  "clickbait": {"is_clickbait": <boolean>, "probability": <float 0-100>},
+  "balanced_views": ["<Article Title - domain.com>"],
+  "ai_reasoning": "<2-3 sentences with verdict and sources>",
+  "extracted_text": "<the text you extracted from the image>"
+}
+Rules: Output ONLY valid JSON. If no text in image, describe what you see and fact-check that."""
 
-    # 2. Fact Check Logic using NLI (Natural Language Inference)
-    # BART-MNLI is an NLI model — use it properly: premise + hypothesis → entailment/contradiction/neutral
-    cred_score = 15.0  # Very low default
+    try:
+        response = requests.post(
+            MERCURY_API_URL,
+            headers={"Authorization": f"Bearer {MERCURY_API_KEY}", "Content-Type": "application/json"},
+            json={
+                "model": "mercury-2",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "Here is the image. Extract the text and fact-check it according to your system prompt."},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{request.image_base64}"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            timeout=45
+        )
+        response.raise_for_status()
+        result_str = response.json()['choices'][0]['message']['content']
+        result = extract_json_from_text(result_str)
+        print(f"Image analysis score: {result.get('credibility')}")
+        return result
+    except Exception as e:
+        print(f"Image analysis error: {e}")
+        return {
+            "credibility": 50.0, "fake_probability": 50.0,
+            "manipulation": {"level": "LOW", "emotion": "neutral", "intensity": 0.0, "keywords": []},
+            "bias": {"leaning": "NEUTRAL", "confidence": 50.0, "propaganda_flag": False},
+            "source_reliability": {"level": "LOW", "score": 0, "domain": "unknown"},
+            "clickbait": {"is_clickbait": False, "probability": 0.0},
+            "balanced_views": ["Image analysis failed"],
+            "ai_reasoning": f"Could not process the image. ({str(e)})",
+            "extracted_text": ""
+        }
 
-    if classifier:
-        if articles and articles[0] != "Trusted coverage not available.":
-            # -- NLI Approach: Web snippets = premise, User claim = hypothesis --
-            # Check if the web evidence SUPPORTS or CONTRADICTS the claim
-            
-            nli_scores_list = []
-            for article in articles[:3]:
-                # Use NLI: premise=article snippet, hypothesis=claim
-                nli_input = f"{article} </s></s> {text}"
-                nli_result = classifier(nli_input, candidate_labels=["entailment", "contradiction", "neutral"])
-                nli_map = dict(zip(nli_result['labels'], nli_result['scores']))
-                nli_scores_list.append(nli_map)
-                print(f"  NLI vs snippet: entail={nli_map.get('entailment',0):.2f} contra={nli_map.get('contradiction',0):.2f} neutral={nli_map.get('neutral',0):.2f}")
-            
-            # Average across all snippets
-            avg_entail = sum(s.get("entailment", 0) for s in nli_scores_list) / len(nli_scores_list)
-            avg_contra = sum(s.get("contradiction", 0) for s in nli_scores_list) / len(nli_scores_list)
-            avg_neutral = sum(s.get("neutral", 0) for s in nli_scores_list) / len(nli_scores_list)
-            print(f"Averaged NLI: entail={avg_entail:.2f} contra={avg_contra:.2f} neutral={avg_neutral:.2f}")
 
-            # Convert NLI to credibility score
-            if avg_entail > avg_contra and avg_entail > avg_neutral:
-                # Web evidence SUPPORTS the claim
-                cred_score = 55.0 + (avg_entail * 40.0)  # Range: 55-95
-            elif avg_contra > avg_entail and avg_contra > avg_neutral:
-                # Web evidence CONTRADICTS the claim
-                cred_score = 10.0 + ((1.0 - avg_contra) * 30.0)  # Range: 10-40
-            else:
-                # Neutral — inconclusive
-                cred_score = 35.0 + (avg_entail * 30.0)  # Range: 35-65
+# ──────────────────────────────────────────────
+# URL ANALYSIS — FAST SCRAPE + SINGLE AI CALL
+# ──────────────────────────────────────────────
+class AnalyzeUrlRequest(BaseModel):
+    url: str
 
-            # -- Additional check: detect health misinformation patterns --
-            lower = text.lower()
-            misinfo_keywords = ["cures cancer", "cure cancer", "kills virus", "miracle cure",
-                                "100% effective", "doctors don't want", "big pharma", "secret cure",
-                                "this one trick", "they don't want you to know"]
-            if any(kw in lower for kw in misinfo_keywords):
-                cred_score = min(cred_score, 25.0)  # Hard cap for obvious quackery
-                print(f"Health misinformation pattern detected → capped at {cred_score}")
+@app.post("/analyze-url")
+async def analyze_url(request: AnalyzeUrlRequest):
+    url = request.url
+    print(f"\n--- New URL Analysis (Fast) ---")
+    print(f"URL: {url}")
+    
+    try:
+        # Fast scrape with tight timeout
+        page = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=5)
+        page.raise_for_status()
+        
+        soup = BeautifulSoup(page.text, 'html.parser')
+        for tag in soup(['script', 'style', 'nav', 'footer']):
+            tag.decompose()
+        
+        title = soup.title.string if soup.title else ''
+        article = soup.find('article') or soup.find('main') or soup.find('body')
+        paragraphs = article.find_all('p') if article else soup.find_all('p')
+        # Only grab first 10 paragraphs — enough for fact-checking, much faster
+        body_text = ' '.join([p.get_text().strip() for p in paragraphs[:10]])
+        
+        extracted = f"Title: {title}\n\n{body_text}"[:2000]  # Tighter limit = faster AI response
+        print(f"Scraped {len(extracted)} chars")
+        
+        if len(body_text.strip()) < 30:
+            return {
+                "credibility": 50.0, "fake_probability": 50.0,
+                "manipulation": {"level": "LOW", "emotion": "neutral", "intensity": 0.0, "keywords": []},
+                "bias": {"leaning": "NEUTRAL", "confidence": 50.0, "propaganda_flag": False},
+                "source_reliability": {"level": "LOW", "score": 0, "domain": "unknown"},
+                "clickbait": {"is_clickbait": False, "probability": 0.0},
+                "balanced_views": ["Not enough content at this URL"],
+                "ai_reasoning": f"Could not extract enough text from '{url}'.",
+                "extracted_text": extracted
+            }
+        
+        # Single AI call with the scraped content
+        analyze_req = AnalyzeRequest(text=extracted)
+        result = await analyze(analyze_req)
+        result["extracted_text"] = extracted
+        return result
+        
+    except Exception as e:
+        print(f"URL error: {e}")
+        return {
+            "credibility": 50.0, "fake_probability": 50.0,
+            "manipulation": {"level": "LOW", "emotion": "neutral", "intensity": 0.0, "keywords": []},
+            "bias": {"leaning": "NEUTRAL", "confidence": 50.0, "propaganda_flag": False},
+            "source_reliability": {"level": "LOW", "score": 0, "domain": "unknown"},
+            "clickbait": {"is_clickbait": False, "probability": 0.0},
+            "balanced_views": [f"Failed: {url}"],
+            "ai_reasoning": f"Could not access URL. ({str(e)})",
+            "extracted_text": ""
+        }
 
-            cred_score = round(float(cred_score), 1)
-            print(f"NLI-based score: {cred_score}")
-        else:
-            # No web context found. Zero-shot on the text alone.
-            result = classifier(text, candidate_labels=["verified news", "unverified claim", "misinformation"])
-            scores = dict(zip(result['labels'], result['scores']))
-            verified = scores.get("verified news", 0)
-            misinfo = scores.get("misinformation", 0)
-            # Weighted: verified boosts, misinformation penalizes
-            cred_score = round(float(verified * 80.0 + (1.0 - misinfo) * 20.0), 1)
-            print(f"No web context. Standalone score: {cred_score}")
-
-    boost = 0.0
-    model_cred = cred_score
-
-    # Calculate final score with safety bounds
-    # Explicit float casting for Pyre strict type checks
-    bonus = float(model_cred) + float(boost)
-    bounded_val = max(10.0, bonus)
-    bounded_val = min(95.0, bounded_val)
-    cred_score = float(round(bounded_val, 1))
-    print(f"Final analyzed score: {cred_score}")
-
-    fake_prob = float(round(100.0 - cred_score, 1))
-
-    lower_text = text.lower()
-
-    # Calculate manipulation level based on score
-    manip_level = "LOW"
-    manip_intensity = 15.0
-    if cred_score < 40.0:
-        manip_level = "HIGH"
-        manip_intensity = 85.0
-    elif cred_score < 70.0:
-        manip_level = "MEDIUM"
-        manip_intensity = 55.0
-
-    return {
-        "credibility": cred_score,
-        "fake_probability": fake_prob,
-        "manipulation": {
-            "level": manip_level,
-            "emotion": "surprise" if cred_score < 50.0 else "neutral",
-            "intensity": manip_intensity,
-            "keywords": ["shocking", "exposed", "secret"] if cred_score < 50.0 else []
-        },
-        "bias": {
-            "leaning": "RIGHT" if "cancer" in lower_text else "NEUTRAL",
-            "confidence": 85.0,
-            "propaganda_flag": cred_score < 40.0
-        },
-        "source_reliability": {
-            "level": "HIGH" if cred_score >= 70.0 else "MEDIUM" if cred_score >= 40.0 else "LOW",
-            "score": int(cred_score),
-            "domain": "unknown-blog.net" if cred_score < 50.0 else "trusted-source.com"
-        },
-        "clickbait": {
-            "is_clickbait": cred_score < 50.0,
-            "probability": float(round(manip_intensity + 10.0, 1)) if cred_score < 50.0 else 12.0
-        },
-        "balanced_views": balanced_views_strings,
-        "ai_reasoning": f"Our analysis scored this at {cred_score}%. We cross-referenced your claim with established factual datasets and real-time web search APIs to formulate this verdict."
-    }
 
 # 5. Keep Appwrite feedback working (Mocked endpoint for now so it doesn't 404)
 class FeedbackRequest(BaseModel):
@@ -188,6 +276,11 @@ class FeedbackRequest(BaseModel):
 async def feedback(request: FeedbackRequest):
     print(f"Received feedback: {request.feedback}")
     return {"status": "success"}
+
+# Health check / tunnel info endpoint
+@app.get("/tunnel-url")
+async def get_tunnel_url():
+    return {"status": "ok", "message": "Use localtunnel URL to access this server publicly."}
 
 if __name__ == "__main__":
     import uvicorn

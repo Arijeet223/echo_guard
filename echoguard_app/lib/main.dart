@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'services/theme_provider.dart';
 import 'screens/home_screen.dart';
+import 'screens/scan_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/profile_screen.dart';
 
@@ -8,24 +10,36 @@ void main() {
   runApp(const EchoGuardApp());
 }
 
-class EchoGuardApp extends StatelessWidget {
+class EchoGuardApp extends StatefulWidget {
   const EchoGuardApp({super.key});
+
+  // Global access to theme provider
+  static final ThemeProvider themeProvider = ThemeProvider();
+
+  @override
+  State<EchoGuardApp> createState() => _EchoGuardAppState();
+}
+
+class _EchoGuardAppState extends State<EchoGuardApp> {
+  @override
+  void initState() {
+    super.initState();
+    EchoGuardApp.themeProvider.addListener(() => setState(() {}));
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = EchoGuardApp.themeProvider.isDark;
     return MaterialApp(
       title: 'EchoGuard',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1D468B),
-          primary: const Color(0xFF1D468B),
-          surface: Colors.white,
-        ),
-        scaffoldBackgroundColor: const Color(0xFFFDFBF7),
-        textTheme: GoogleFonts.interTextTheme(),
-        useMaterial3: true,
+      theme: ThemeProvider.lightTheme.copyWith(
+        textTheme: GoogleFonts.interTextTheme(ThemeProvider.lightTheme.textTheme),
       ),
+      darkTheme: ThemeProvider.darkTheme.copyWith(
+        textTheme: GoogleFonts.interTextTheme(ThemeProvider.darkTheme.textTheme),
+      ),
+      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
       home: const MainNavigation(),
     );
   }
@@ -43,26 +57,32 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
-    const HomeScreen(), // Scan redirects to home with focus on input
+    const ScanScreen(),
     const HistoryScreen(),
     const ProfileScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: Color(0xFFF1EEE9), width: 1)),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: theme.dividerColor, width: 1)),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (i) => setState(() => _currentIndex = i),
           type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF1D468B),
-          unselectedItemColor: Colors.grey.shade400,
+          backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+          selectedItemColor: theme.colorScheme.primary,
+          unselectedItemColor: Colors.grey.shade500,
           selectedFontSize: 10,
           unselectedFontSize: 10,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: -0.3),

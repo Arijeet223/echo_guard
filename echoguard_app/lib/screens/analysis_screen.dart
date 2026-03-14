@@ -79,13 +79,14 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFBF7),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFDFBF7),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
-        title: const Text('EchoGuard Analysis', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1D468B))),
+        title: Text('EchoGuard Analysis', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.appBarTheme.foregroundColor)),
         centerTitle: true,
         actions: [IconButton(icon: const Icon(Icons.share), onPressed: () {})],
       ),
@@ -219,16 +220,16 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFDFBF7),
+                        color: Theme.of(context).scaffoldBackgroundColor,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFF1EEE9)),
+                        border: Border.all(color: Theme.of(context).dividerColor),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(source, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF1D468B), letterSpacing: 0.5)),
+                          Text(source, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary, letterSpacing: 0.5)),
                           const SizedBox(height: 4),
-                          Text(title, style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
+                          Text(title, style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color, fontWeight: FontWeight.w500)),
                         ],
                       ),
                     ),
@@ -242,7 +243,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
           // Feedback
           _card(
-            color: const Color(0xFFFDFBF7),
+            color: Theme.of(context).scaffoldBackgroundColor,
             child: Column(
               children: [
                 Text('RATE THIS ANALYSIS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: Colors.grey.shade500)),
@@ -269,21 +270,24 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Widget _buildGauge(double score, Color color) {
-    return SizedBox(
-      width: 160, height: 160,
-      child: CustomPaint(
-        painter: _GaugePainter(score, color),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('${score.toStringAsFixed(0)}', style: TextStyle(fontSize: 42, fontWeight: FontWeight.w800, color: color)),
-              Text('%', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
-            ],
+    return Builder(builder: (context) {
+      final theme = Theme.of(context);
+      return SizedBox(
+        width: 160, height: 160,
+        child: CustomPaint(
+          painter: _GaugePainter(score, color, theme.dividerColor),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('${score.toStringAsFixed(0)}', style: TextStyle(fontSize: 42, fontWeight: FontWeight.w800, color: color)),
+                Text('%', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   Widget _expandableReasoning(String reasoning) {
@@ -435,45 +439,53 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Widget _metricRow(String label, String value, {Color? valueColor}) {
-    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-      Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: valueColor ?? Colors.grey.shade800)),
-    ]);
+    return Builder(builder: (context) {
+      return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: valueColor ?? Theme.of(context).textTheme.bodyLarge?.color)),
+      ]);
+    });
   }
 
   Widget _feedbackBtn(String label, Color color) {
-    return Expanded(
-      child: OutlinedButton(
-        onPressed: () => _sendFeedback(label),
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(color: Colors.grey.shade200),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          padding: const EdgeInsets.symmetric(vertical: 10),
+    return Builder(builder: (context) {
+      return Expanded(
+        child: OutlinedButton(
+          onPressed: () => _sendFeedback(label),
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: Theme.of(context).dividerColor),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+          ),
+          child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade500)),
         ),
-        child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade600)),
-      ),
-    );
+      );
+    });
   }
 
   Widget _card({required Widget child, Color? color}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color ?? Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF1EEE9)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))],
-      ),
-      child: child,
-    );
+    return Builder(builder: (context) {
+      final theme = Theme.of(context);
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color ?? theme.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: theme.dividerColor),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))],
+        ),
+        child: child,
+      );
+    });
   }
 }
 
 class _GaugePainter extends CustomPainter {
   final double score;
   final Color color;
-  _GaugePainter(this.score, this.color);
+  final Color bgColor;
+  _GaugePainter(this.score, this.color, this.bgColor);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -482,7 +494,7 @@ class _GaugePainter extends CustomPainter {
 
     // Background arc
     final bgPaint = Paint()
-      ..color = const Color(0xFFF5F0E6)
+      ..color = bgColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 10
       ..strokeCap = StrokeCap.round;

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/storage_service.dart';
+import '../main.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -71,10 +72,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFBF7),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFDFBF7),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         surfaceTintColor: Colors.transparent,
         title: const Text('Profile', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         actions: [
@@ -204,7 +208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ]),
               )
             else
-              ...(_history.take(3).map(_activityItem)),
+              ...(_history.take(3).map((item) => _activityItem(item, theme))),
 
             const SizedBox(height: 24),
 
@@ -217,15 +221,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Text('Preferences', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   Container(
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+                    decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: theme.dividerColor)),
                     child: Column(children: [
-                      _settingsItem(Icons.language, 'Language', trailing: 'English'),
-                      const Divider(height: 1),
-                      _settingsItem(Icons.dark_mode, 'Dark Mode', isToggle: true),
-                      const Divider(height: 1),
-                      _settingsItem(Icons.notifications_active, 'Notifications'),
-                      const Divider(height: 1),
-                      _settingsItem(Icons.logout, 'Logout', isDestructive: true),
+                      _settingsItem(Icons.language, 'Language', trailing: 'English', theme: theme),
+                      Divider(height: 1, color: theme.dividerColor),
+                      _settingsItem(Icons.dark_mode, 'Dark Mode', isToggle: true, theme: theme, isDark: isDark),
+                      Divider(height: 1, color: theme.dividerColor),
+                      _settingsItem(Icons.notifications_active, 'Notifications', theme: theme),
+                      Divider(height: 1, color: theme.dividerColor),
+                      _settingsItem(Icons.logout, 'Logout', isDestructive: true, theme: theme),
                     ]),
                   ),
                 ],
@@ -257,14 +261,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _activityItem(HistoryItem item) {
+  Widget _activityItem(HistoryItem item, ThemeData theme) {
     final color = _verdictColor(item.verdict);
     final icon = _verdictIcon(item.verdict);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
+        decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(8), border: Border.all(color: theme.dividerColor)),
         child: Row(children: [
           Container(
             width: 36, height: 36,
@@ -284,10 +288,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _settingsItem(IconData icon, String label, {String? trailing, bool isToggle = false, bool isDestructive = false}) {
+  Widget _settingsItem(IconData icon, String label, {String? trailing, bool isToggle = false, bool isDestructive = false, required ThemeData theme, bool isDark = false}) {
     return ListTile(
-      leading: Icon(icon, color: isDestructive ? Colors.red : Colors.grey.shade500),
-      title: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: isDestructive ? Colors.red : null)),
+      leading: Icon(icon, color: isDestructive ? Colors.red : theme.iconTheme.color),
+      title: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: isDestructive ? Colors.red : theme.textTheme.bodyLarge?.color)),
       trailing: trailing != null
           ? Row(mainAxisSize: MainAxisSize.min, children: [
               Text(trailing, style: TextStyle(fontSize: 13, color: Colors.grey.shade400)),
@@ -295,14 +299,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Icon(Icons.chevron_right, color: Colors.grey.shade300),
             ])
           : isToggle
-              ? Switch(value: false, onChanged: (_) {})
+              ? Switch(
+                  value: isDark, 
+                  onChanged: (_) {
+                    EchoGuardApp.themeProvider.toggle();
+                  },
+                  activeColor: theme.colorScheme.primary,
+                )
               : Icon(Icons.chevron_right, color: Colors.grey.shade300),
       onTap: isDestructive ? () async {
         final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
-          title: const Text('Logout'),
-          content: const Text('Are you sure you want to log out?'),
+          backgroundColor: theme.dialogBackgroundColor,
+          title: Text('Logout', style: TextStyle(color: theme.textTheme.titleLarge?.color)),
+          content: Text('Are you sure you want to log out?', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancel', style: TextStyle(color: theme.colorScheme.primary))),
             TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Logout', style: TextStyle(color: Colors.red))),
           ],
         ));

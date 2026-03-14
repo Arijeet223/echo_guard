@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
     <application
         android:label="echoguard_app"
         android:name="${applicationName}"
@@ -31,6 +33,23 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+            
+        <service 
+            android:name="flutter.overlay.window.flutter_overlay_window.OverlayService" 
+            android:exported="false" 
+            android:stopWithTask="false" />
+        
+        <service
+            android:name="slayer.accessibility.service.flutter_accessibility_service.AccessibilityListener"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

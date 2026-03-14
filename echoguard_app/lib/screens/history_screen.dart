@@ -54,13 +54,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final recent = _filtered.where(_isRecent).toList();
     final older = _filtered.where((i) => !_isRecent(i)).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFBF7),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFDFBF7),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         surfaceTintColor: Colors.transparent,
         title: Row(children: [
           Container(
@@ -69,7 +70,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: const Icon(Icons.history, color: Colors.white, size: 20),
           ),
           const SizedBox(width: 10),
-          const Text('History', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1D468B))),
+          Text('History', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.appBarTheme.foregroundColor)),
         ]),
         actions: [
           IconButton(icon: const Icon(Icons.search), onPressed: () => setState(() => _showSearch = !_showSearch)),
@@ -87,8 +88,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 decoration: InputDecoration(
                   hintText: 'Search past analyses...',
                   prefixIcon: const Icon(Icons.search, size: 20),
-                  filled: true, fillColor: const Color(0xFFFDFBF7),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE5E1D8))),
+                  filled: true, fillColor: theme.scaffoldBackgroundColor,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: theme.dividerColor)),
                   contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 ),
               ),
@@ -125,24 +126,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _historyCard(HistoryItem item) {
     final color = _verdictColor(item.verdict);
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => AnalysisScreen(text: item.text)));
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E1D8)),
-          boxShadow: [BoxShadow(color: const Color(0xFF1D468B).withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2))],
-        ),
-        child: Column(
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+    return Builder(builder: (context) {
+      final theme = Theme.of(context);
+      return GestureDetector(
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => AnalysisScreen(text: item.text)));
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: theme.dividerColor),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2))],
+          ),
+          child: Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,7 +175,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
               ],
             ),
-            const Divider(height: 20, color: Color(0xFFF1EEE9)),
+            Divider(height: 20, color: theme.dividerColor),
             Row(children: [
               Icon(Icons.link, size: 14, color: Colors.grey.shade400),
               const SizedBox(width: 6),
@@ -182,6 +185,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
       ),
     );
+    });
   }
 
   Widget _emptyState() {
