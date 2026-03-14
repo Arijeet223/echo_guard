@@ -34,6 +34,18 @@ class AnalysisResult {
       extractedText: json['extracted_text'] as String?,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'credibility': credibility,
+    'fake_probability': fakeProbability,
+    'manipulation': manipulation.toJson(),
+    'bias': bias.toJson(),
+    'source_reliability': sourceReliability.toJson(),
+    'clickbait': clickbait.toJson(),
+    'balanced_views': balancedViews,
+    'ai_reasoning': aiReasoning,
+    if (extractedText != null) 'extracted_text': extractedText,
+  };
 }
 
 class ManipulationData {
@@ -57,6 +69,13 @@ class ManipulationData {
       keywords: List<String>.from(json['keywords'] ?? []),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'level': level,
+    'emotion': emotion,
+    'intensity': intensity,
+    'keywords': keywords,
+  };
 }
 
 class BiasData {
@@ -77,6 +96,12 @@ class BiasData {
       propagandaFlag: json['propaganda_flag'] ?? false,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'leaning': leaning,
+    'confidence': confidence,
+    'propaganda_flag': propagandaFlag,
+  };
 }
 
 class SourceReliability {
@@ -97,6 +122,12 @@ class SourceReliability {
       domain: json['domain'] ?? 'unknown',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'level': level,
+    'score': score,
+    'domain': domain,
+  };
 }
 
 class ClickbaitData {
@@ -114,4 +145,9 @@ class ClickbaitData {
       probability: (json['probability'] as num).toDouble(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'is_clickbait': isClickbait,
+    'probability': probability,
+  };
 }

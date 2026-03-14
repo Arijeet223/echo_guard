@@ -5,33 +5,41 @@ import '../models/feed_models.dart';
 class HistoryItem {
   final int id;
   final String text;
+  final String fullText;
   final String date;
   final double score;
   final String verdict;
+  final Map<String, dynamic>? resultJson;
 
   HistoryItem({
     required this.id,
     required this.text,
+    this.fullText = '',
     required this.date,
     required this.score,
     required this.verdict,
+    this.resultJson,
   });
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'text': text,
+    'fullText': fullText,
     'date': date,
     'score': score,
     'verdict': verdict,
+    if (resultJson != null) 'resultJson': resultJson,
   };
 
   factory HistoryItem.fromJson(Map<String, dynamic> json) {
     return HistoryItem(
       id: json['id'] ?? 0,
       text: json['text'] ?? '',
+      fullText: json['fullText'] ?? '',
       date: json['date'] ?? '',
       score: (json['score'] as num).toDouble(),
       verdict: json['verdict'] ?? 'Unknown',
+      resultJson: json['resultJson'] as Map<String, dynamic>?,
     );
   }
 }
@@ -44,7 +52,7 @@ class StorageService {
     return list.map((e) => HistoryItem.fromJson(e)).toList();
   }
 
-  static Future<void> addToHistory(String text, double score) async {
+  static Future<void> addToHistory(String text, double score, {Map<String, dynamic>? resultJson}) async {
     final prefs = await SharedPreferences.getInstance();
     final history = await getHistory();
 
@@ -67,9 +75,11 @@ class StorageService {
     final item = HistoryItem(
       id: now,
       text: truncatedText,
+      fullText: text,
       date: DateTime.now().toString(),
       score: score,
       verdict: verdict,
+      resultJson: resultJson,
     );
 
     history.insert(0, item);

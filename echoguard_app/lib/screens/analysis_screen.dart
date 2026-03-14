@@ -30,7 +30,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       _result = widget.preloadedResult;
       _loading = false;
       // Save to history (same as text analysis path)
-      StorageService.addToHistory(widget.text, widget.preloadedResult!.credibility);
+      StorageService.addToHistory(widget.text, widget.preloadedResult!.credibility, resultJson: widget.preloadedResult!.toJson());
     } else {
       _fetchAnalysis();
     }
@@ -46,7 +46,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       } else {
         result = await ApiService.analyzeText(t);
       }
-      await StorageService.addToHistory(widget.text, result.credibility);
+      await StorageService.addToHistory(widget.text, result.credibility, resultJson: result.toJson());
       setState(() { _result = result; _loading = false; });
     } catch (e) {
       setState(() { _error = e.toString(); _loading = false; });

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/analysis_result.dart';
 import '../services/storage_service.dart';
 import 'analysis_screen.dart';
 
@@ -129,8 +130,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Builder(builder: (context) {
       final theme = Theme.of(context);
       return GestureDetector(
-        onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => AnalysisScreen(text: item.text)));
+      onTap: () {
+          AnalysisResult? preloaded;
+          if (item.resultJson != null) {
+            try {
+              preloaded = AnalysisResult.fromJson(item.resultJson!);
+            } catch (_) {}
+          }
+          final textToAnalyze = item.fullText.isNotEmpty ? item.fullText : item.text;
+          Navigator.push(context, MaterialPageRoute(builder: (_) => AnalysisScreen(text: textToAnalyze, preloadedResult: preloaded)));
         },
         child: Container(
           margin: const EdgeInsets.only(bottom: 12),
