@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/feed_models.dart';
 
 class HistoryItem {
   final int id;
@@ -103,5 +104,67 @@ class StorageService {
   static Future<void> setBio(String bio) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('eg_bio', bio);
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // BLOG POSTS (Community Feed)
+  // ────────────────────────────────────────────────────────────────────────
+  static const String _blogsKey = 'echoguard_blogs';
+  static List<BlogPost> _cachedBlogs = [];
+
+  static Future<void> loadBlogs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? blogsJson = prefs.getString(_blogsKey);
+
+      if (blogsJson != null) {
+        final List<dynamic> decoded = jsonDecode(blogsJson);
+        _cachedBlogs = decoded.map((e) => BlogPost.fromJson(e as Map<String, dynamic>)).toList();
+        
+        // Sort descending by timestamp
+        _cachedBlogs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      }
+    } catch (e) {
+      // Print safely without depending on flutter/foundation.dart in this block
+      print('Error loading blogs: $e');
+    }
+  }
+
+  static List<BlogPost> getBlogs() => List.unmodifiable(_cachedBlogs);
+
+  static Future<void> saveBlogPost(BlogPost post) async {
+    _cachedBlogs.insert(0, post); // Add to top
+    await _persistBlogs();
+  }
+
+  static Future<void> addCommentToBlog(String blogId, Comment comment) async {
+    final index = _cachedBlogs.indexWhere((b) => b.id == blogId);
+    if (index != -1) {
+      final oldBlog = _cachedBlogs[index];
+      final newComments = List<Comment>.from(oldBlog.comments)..add(comment);
+      
+      final updatedBlog = BlogPost(
+        id: oldBlog.id,
+        timestamp: oldBlog.timestamp,
+        author: oldBlog.author,
+        content: oldBlog.content,
+        analysis: oldBlog.analysis,
+        comments: newComments,
+      );
+      
+      _cachedBlogs[index] = updatedBlog;
+      await _persistBlogs();
+    }
+  }
+
+  static Future<void> _persistBlogs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<Map<String, dynamic>> jsonList = 
+          _cachedBlogs.map((b) => b.toJson()).toList();
+      await prefs.setString(_blogsKey, jsonEncode(jsonList));
+    } catch (e) {
+      print('Error saving blogs: $e');
+    }
   }
 }

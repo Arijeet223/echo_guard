@@ -39,6 +39,7 @@ dependencies:
   image_picker: ^1.2.1
   flutter_overlay_window: ^0.5.0
   flutter_accessibility_service: ^1.0.0
+  xml: ^6.6.1
 
 dev_dependencies:
   flutter_test:

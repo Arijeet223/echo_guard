@@ -85,19 +85,8 @@ class _ScanScreenState extends State<ScanScreen> {
           result.aiReasoning.isNotEmpty ? result.aiReasoning : 'No details available.',
         );
 
-        // Save to history immediately (safety net — also saved by AnalysisScreen)
+        // Save to history immediately (can be viewed later inside the app)
         StorageService.addToHistory(displayText, result.credibility);
-
-        // Also push the AnalysisScreen within the app if it's active
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AnalysisScreen(
-              text: displayText,
-              preloadedResult: result,
-            ),
-          ),
-        );
       } catch (e) {
         if (!mounted) return;
         

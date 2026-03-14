@@ -32,12 +32,13 @@ class DirectAnalysisService {
   static const String _ocrSpaceUrl = 'https://api.ocr.space/parse/image';
 
   // ══════════════════════════════════════════════════════════════════════
-  //  SYSTEM PROMPT  (identical to main.py backend)
+  //  SYSTEM PROMPT  (identical to main.py backend but with RAG instructions)
   // ══════════════════════════════════════════════════════════════════════
 
   static const String _systemPrompt = '''
 You are EchoGuard, an advanced, highly-accurate AI fact-checking engine.
 Analyze the user's claim. You are expected to provide the FINAL analysis.
+Your primary directive: If live web search results are provided, you MUST prioritize them over your internal knowledge, as your training data cuts off in 2025. Does the scraped news confirm or refute the claim?
 Do NOT output any intermediate search queries or tool calls.
 You MUST output ONLY a single valid JSON object matching this exact structure:
 {
@@ -57,7 +58,7 @@ You MUST output ONLY a single valid JSON object matching this exact structure:
   "source_reliability": {
     "level": "<string: HIGH, MEDIUM, LOW>",
     "score": <integer between 0 and 100>,
-    "domain": "<string: primarily cross-referenced domain, e.g., reuters.com>"
+    "domain": "<string: primarily cross-referenced domain or unknown>"
   },
   "clickbait": {
     "is_clickbait": <boolean>,
@@ -67,20 +68,20 @@ You MUST output ONLY a single valid JSON object matching this exact structure:
     "<string: Title of article - domain.com>",
     "<string: Title of article - domain.com>"
   ],
-  "ai_reasoning": "<string: 2-3 sentences explaining your verdict and the sources you checked>"
+  "ai_reasoning": "<string: 2-3 sentences explaining your verdict based strongly on the live search results>"
 }
 
 Rules:
 1. "credibility" is your main 0-100 score. 100=absolutely true, 0=absolutely false.
-2. "balanced_views" must contain 2-3 actual article headlines and their domains that you found via web search. This is CRITICAL.
-3. Be objective. Your ENTIRE output must be the JSON structure above. Do not output anything else.
+2. "balanced_views" must contain actual article headlines and domains from the search results, if provided.
+3. Be objective. Your ENTIRE output must be the JSON object above. Do not output anything else.
 ''';
 
   // ══════════════════════════════════════════════════════════════════════
   //  PUBLIC API
   // ══════════════════════════════════════════════════════════════════════
 
-  /// Analyze plain text — Inception Mercury-2 primary, local fallback.
+  /// Analyze plain text — Inception Mercury-2 primary (with web search), local fallback.
   static Future<AnalysisResult> analyzeText(String text) async {
     if (text.trim().isEmpty) throw Exception('No text provided.');
     return _analyzeViaInception(text.trim());
@@ -105,7 +106,6 @@ Rules:
   }
 
   /// Analyze an image — OCR.space extracts text, then Inception analyzes it.
-  /// This is the SAME pipeline as text input — OCR just grabs the text first.
   static Future<AnalysisResult> analyzeImage(String base64Image) async {
     // ── Step 1: Extract text via OCR.space ──────────────────────────────
     final extractedText = await extractTextFromImage(base64Image);
@@ -165,14 +165,76 @@ Rules:
   }
 
   // ══════════════════════════════════════════════════════════════════════
+  //  LIVE WEB SEARCH (RAG)
+  // ══════════════════════════════════════════════════════════════════════
+
+  /// Scrapes latest news context from Google News RSS using a generated query
+  static Future<String> _scrapeNews(String text) async {
+    try {
+      // Create a short search query from the first 100 chars (stripping common stopwords for better results)
+      final cleanText = text.replaceAll(RegExp(r'[^\w\s]'), ' ').trim();
+      final words = cleanText.split(RegExp(r'\s+'));
+      final queryWords = words.take(8).where((w) => w.length > 2 && w.toLowerCase() != 'the' && w.toLowerCase() != 'and').toList();
+      final query = Uri.encodeComponent(queryWords.join(' '));
+      
+      if (query.isEmpty) return 'No news query generated.';
+
+      final url = 'https://news.google.com/rss/search?q=$query&hl=en-US&gl=US&ceid=US:en';
+      print('[EchoGuard] Live News Web Search: $url');
+      
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+      if (response.statusCode != 200) return 'News search failed (HTTP ${response.statusCode}).';
+
+      final rss = response.body;
+      
+      // Simple regex extraction since we don't have an XML parser in pubspec
+      final itemRegex = RegExp(r'<item>([\s\S]*?)<\/item>');
+      final titleRegex = RegExp(r'<title>([\s\S]*?)<\/title>');
+      final dateRegex = RegExp(r'<pubDate>([\s\S]*?)<\/pubDate>');
+      
+      final matches = itemRegex.allMatches(rss).take(4); // Top 4 articles
+      
+      if (matches.isEmpty) return 'No matching live news found.';
+
+      final newsContext = StringBuffer();
+      newsContext.writeln('LIVE NEWS SEARCH RESULTS:');
+      
+      int count = 1;
+      for (final match in matches) {
+        final itemBody = match.group(1) ?? '';
+        final title = titleRegex.firstMatch(itemBody)?.group(1) ?? 'Unknown Title';
+        final date = dateRegex.firstMatch(itemBody)?.group(1) ?? 'Unknown Date';
+        
+        // Strip out HTML entities (Google News puts CDATA or encoded HTML sometimes but usually title is clean)
+        final cleanTitle = title.replaceAll('&amp;', '&').replaceAll('&quot;', '"').replaceAll('&apos;', "'").replaceAll('&lt;', '<').replaceAll('&gt;', '>');
+        
+        newsContext.writeln('$count. "$cleanTitle" (Published: $date)');
+        count++;
+      }
+      
+      print('[EchoGuard] Scraped ${count-1} live news articles.');
+      return newsContext.toString();
+    } catch (e) {
+      print('[EchoGuard] News scrape failed: $e');
+      return 'News scrape failed: $e';
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
   //  INCEPTION MERCURY-2 — PRIMARY ANALYSIS ENGINE
   // ══════════════════════════════════════════════════════════════════════
 
   /// Calls Inception Labs Mercury-2 API directly from the phone.
-  /// Falls back to local heuristic ONLY if the API is completely unreachable.
   static Future<AnalysisResult> _analyzeViaInception(String text) async {
     try {
-      print('[EchoGuard] Calling Inception Mercury-2...');
+      // 1. Scrape live news first! (Provides up-to-date context since model ends in 2025)
+      final newsContext = await _scrapeNews(text);
+      
+      // 2. Build the combined prompt
+      final combinedPrompt = 'CLAIM TO ANALYZE:\n"$text"\n\n$newsContext\n\n'
+          'Remember: Prioritize the live news search results to determine if the claim is factual, misleading, or outright false. Give a precise credibility score.';
+
+      print('[EchoGuard] Calling Inception Mercury-2 with RAG context...');
 
       final response = await http.post(
         Uri.parse(_inceptionUrl),
@@ -184,7 +246,7 @@ Rules:
           'model': _inceptionModel,
           'messages': [
             {'role': 'system', 'content': _systemPrompt},
-            {'role': 'user', 'content': text},
+            {'role': 'user', 'content': combinedPrompt},
           ],
           'response_format': {'type': 'json_object'},
           'max_tokens': 1500,
