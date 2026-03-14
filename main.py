@@ -21,6 +21,12 @@ app.add_middleware(
 MERCURY_API_KEY = "sk_0f303a19575726c1579d899453ad8c37"
 MERCURY_API_URL = "https://api.inceptionlabs.ai/v1/chat/completions"
 
+# Google Gemini — used ONLY for OCR (extracting text from images).
+# mercury-2 is text-only and cannot process images at all.
+# Get a free key at https://aistudio.google.com/apikey
+GEMINI_API_KEY = "AIzaSyC4RfVvZP0BDLOb_4OkNQwdphvQEkIFKZ0"
+GEMINI_OCR_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+
 def extract_json_from_text(text: str) -> dict:
     if not text:
         raise ValueError("Received empty string from AI")
@@ -137,72 +143,167 @@ Rules:
         }
 
 # ──────────────────────────────────────────────
-# IMAGE ANALYSIS — SINGLE-PASS (OCR + Fact-Check in ONE call)
+# IMAGE ANALYSIS — TWO-STEP PIPELINE
+# Step 1: Gemini 1.5 Flash  → OCR-extract text from the image
+# Step 2: Mercury 2         → Fact-check that extracted text (same as /analyze)
+#
+# WHY: mercury-2 is a text-only model. It silently ignores the image_url
+# content block, so the entire image was being thrown away on the old
+# single-pass approach, resulting in a credibility score of 0.
 # ──────────────────────────────────────────────
 class AnalyzeImageRequest(BaseModel):
     image_base64: str
 
-@app.post("/analyze-image")
-async def analyze_image(request: AnalyzeImageRequest):
-    print(f"\n--- New Image Analysis (Single-Pass) ---")
-    
-    system_prompt = """You are EchoGuard, an AI fact-checking engine.
-1. First, extract ALL text visible in the image.
-2. Then, fact-check the extracted claims.
-You MUST output ONLY a single valid JSON object:
-{
-  "credibility": <float 0-100>,
-  "fake_probability": <float 0-100>,
-  "manipulation": {"level": "<HIGH/MEDIUM/LOW>", "emotion": "<string>", "intensity": <float 0-100>, "keywords": ["<string>"]},
-  "bias": {"leaning": "<LEFT/RIGHT/NEUTRAL/BIAS-FREE>", "confidence": <float 0-100>, "propaganda_flag": <boolean>},
-  "source_reliability": {"level": "<HIGH/MEDIUM/LOW>", "score": <int 0-100>, "domain": "<string>"},
-  "clickbait": {"is_clickbait": <boolean>, "probability": <float 0-100>},
-  "balanced_views": ["<Article Title - domain.com>"],
-  "ai_reasoning": "<2-3 sentences with verdict and sources>",
-  "extracted_text": "<the text you extracted from the image>"
-}
-Rules: Output ONLY valid JSON. If no text in image, describe what you see and fact-check that."""
-
+def _detect_mime_type(image_base64: str) -> str:
+    """Detect image MIME type from the first bytes of the base64 data."""
     try:
-        response = requests.post(
-            MERCURY_API_URL,
-            headers={"Authorization": f"Bearer {MERCURY_API_KEY}", "Content-Type": "application/json"},
-            json={
-                "model": "mercury-2",
-                "messages": [
-                    {"role": "system", "content": system_prompt},
+        # Decode just the first 16 bytes to check magic bytes
+        header = base64.b64decode(image_base64[:24] + "==")
+        if header[:2] == b'\xff\xd8':
+            return "image/jpeg"
+        if header[:8] == b'\x89PNG\r\n\x1a\n':
+            return "image/png"
+        if header[:4] in (b'RIFF', b'WEBP') or header[8:12] == b'WEBP':
+            return "image/webp"
+        if header[:6] in (b'GIF87a', b'GIF89a'):
+            return "image/gif"
+    except Exception:
+        pass
+    return "image/jpeg"  # safe default
+
+
+def _extract_text_from_image_gemini(image_base64: str) -> str:
+    """
+    Step 1: call Gemini 1.5 Flash to OCR-extract all readable text
+    from the base64-encoded image.  Returns the extracted text string.
+    Raises on failure so the caller can fall back gracefully.
+    """
+    if not GEMINI_API_KEY:
+        raise ValueError(
+            "GEMINI_API_KEY environment variable is not set. "
+            "Get a free key at https://aistudio.google.com/apikey and restart the server."
+        )
+
+    mime_type = _detect_mime_type(image_base64)
+    print(f"[Gemini OCR] Detected MIME type: {mime_type}")
+
+    payload = {
+        "contents": [
+            {
+                "parts": [
                     {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": "Here is the image. Extract the text and fact-check it according to your system prompt."},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{request.image_base64}"
-                                }
-                            }
-                        ]
+                        "text": (
+                            "This is a news image or screenshot. Please do the following:\n"
+                            "1. Extract ALL visible text — headlines, subheadings, captions, "
+                            "chyrons, ticker text, watermarks, social media post text, article body.\n"
+                            "2. If there is very little or no text, describe the visual content "
+                            "as a news claim (e.g. 'Breaking news: US military plane crashes in Iraq').\n"
+                            "3. Output ONLY the extracted text or description — no commentary, "
+                            "no explanations, just the raw content from the image."
+                        )
+                    },
+                    {
+                        "inline_data": {
+                            "mime_type": mime_type,
+                            "data": image_base64
+                        }
                     }
                 ]
-            },
-            timeout=45
-        )
-        response.raise_for_status()
-        result_str = response.json()['choices'][0]['message']['content']
-        result = extract_json_from_text(result_str)
-        print(f"Image analysis score: {result.get('credibility')}")
-        return result
-    except Exception as e:
-        print(f"Image analysis error: {e}")
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0,
+            "maxOutputTokens": 2048
+        }
+    }
+
+    resp = requests.post(
+        GEMINI_OCR_URL,
+        headers={"Content-Type": "application/json"},
+        params={"key": GEMINI_API_KEY},
+        json=payload,
+        timeout=30
+    )
+
+    # Log errors from Gemini for debugging
+    if not resp.ok:
+        print(f"[Gemini OCR] Error {resp.status_code}: {resp.text[:500]}")
+    resp.raise_for_status()
+
+    data = resp.json()
+    candidates = data.get("candidates", [])
+    if not candidates:
+        # Check for promptFeedback block reason
+        block = data.get("promptFeedback", {}).get("blockReason", "unknown")
+        raise ValueError(f"Gemini returned no candidates (blockReason={block})")
+
+    parts = candidates[0].get("content", {}).get("parts", [])
+    if not parts:
+        raise ValueError("Gemini candidate has no parts")
+
+    extracted = parts[0].get("text", "").strip()
+    return extracted
+
+
+
+@app.post("/analyze-image")
+async def analyze_image(request: AnalyzeImageRequest):
+    print(f"\n--- New Image Analysis (2-Step: Gemini OCR → Mercury Fact-Check) ---")
+
+    extracted_text = ""
+
+    # ── Step 1: OCR ────────────────────────────────────────────────────────────
+    try:
+        extracted_text = _extract_text_from_image_gemini(request.image_base64)
+        print(f"[Step 1] Gemini extracted {len(extracted_text)} chars: {extracted_text[:200]}")
+    except Exception as ocr_err:
+        print(f"[Step 1] Gemini OCR failed: {ocr_err}")
         return {
-            "credibility": 50.0, "fake_probability": 50.0,
+            "credibility": 50.0,
+            "fake_probability": 50.0,
             "manipulation": {"level": "LOW", "emotion": "neutral", "intensity": 0.0, "keywords": []},
             "bias": {"leaning": "NEUTRAL", "confidence": 50.0, "propaganda_flag": False},
             "source_reliability": {"level": "LOW", "score": 0, "domain": "unknown"},
             "clickbait": {"is_clickbait": False, "probability": 0.0},
-            "balanced_views": ["Image analysis failed"],
-            "ai_reasoning": f"Could not process the image. ({str(e)})",
+            "balanced_views": ["OCR step failed — check GEMINI_API_KEY"],
+            "ai_reasoning": f"Could not extract text from the image: {str(ocr_err)}",
             "extracted_text": ""
+        }
+
+    if not extracted_text or len(extracted_text.strip()) < 10:
+        print("[Step 1] No meaningful text found in image.")
+        return {
+            "credibility": 50.0,
+            "fake_probability": 50.0,
+            "manipulation": {"level": "LOW", "emotion": "neutral", "intensity": 0.0, "keywords": []},
+            "bias": {"leaning": "NEUTRAL", "confidence": 50.0, "propaganda_flag": False},
+            "source_reliability": {"level": "LOW", "score": 0, "domain": "unknown"},
+            "clickbait": {"is_clickbait": False, "probability": 0.0},
+            "balanced_views": ["No text found in the image"],
+            "ai_reasoning": "The image does not contain any readable text to fact-check.",
+            "extracted_text": ""
+        }
+
+    # ── Step 2: Fact-check the extracted text via Mercury 2 ───────────────────
+    print(f"[Step 2] Sending extracted text to Mercury 2 for fact-checking...")
+    try:
+        analyze_req = AnalyzeRequest(text=extracted_text)
+        result = await analyze(analyze_req)
+        result["extracted_text"] = extracted_text   # attach OCR'd text to response
+        print(f"[Step 2] Mercury credibility score: {result.get('credibility')}")
+        return result
+    except Exception as fc_err:
+        print(f"[Step 2] Mercury fact-check failed: {fc_err}")
+        return {
+            "credibility": 50.0,
+            "fake_probability": 50.0,
+            "manipulation": {"level": "LOW", "emotion": "neutral", "intensity": 0.0, "keywords": []},
+            "bias": {"leaning": "NEUTRAL", "confidence": 50.0, "propaganda_flag": False},
+            "source_reliability": {"level": "LOW", "score": 0, "domain": "unknown"},
+            "clickbait": {"is_clickbait": False, "probability": 0.0},
+            "balanced_views": ["Fact-check step failed"],
+            "ai_reasoning": f"Text was extracted but fact-checking failed: {str(fc_err)}",
+            "extracted_text": extracted_text
         }
 
 

@@ -27,6 +27,7 @@ class EchoGuardOverlayService : Service() {
     companion object {
         const val ACTION_START = "echoguard.START_OVERLAY"
         const val ACTION_STOP  = "echoguard.STOP_OVERLAY"
+        const val ACTION_SHOW_RESULT = "echoguard.SHOW_RESULT"
         const val SCAN_TRIGGER = "echoguard.SCAN_TRIGGER"
         const val CHANNEL_ID   = "echoguard_overlay"
         const val NOTIF_ID     = 1001
@@ -37,7 +38,9 @@ class EchoGuardOverlayService : Service() {
 
     private var windowManager: WindowManager? = null
     private var bubbleView: View? = null
+    private var resultView: View? = null
     private lateinit var layoutParams: WindowManager.LayoutParams
+    private lateinit var resultLayoutParams: WindowManager.LayoutParams
 
     // -- drag state --
     private var initialX = 0
@@ -68,6 +71,11 @@ class EchoGuardOverlayService : Service() {
                 removeBubble()
                 stopSelf()
                 return START_NOT_STICKY
+            }
+            ACTION_SHOW_RESULT -> {
+                val verdict = intent.getStringExtra("verdict") ?: "Unknown"
+                val reason = intent.getStringExtra("reason") ?: ""
+                showResultCard(verdict, reason)
             }
             else -> showBubble()
         }
@@ -145,8 +153,91 @@ class EchoGuardOverlayService : Service() {
             windowManager?.removeViewImmediate(it)
             bubbleView = null
         }
+        removeResultView()
         EchoGuardScanBridge.overlayRunning = false
     }
+
+    private fun removeResultView() {
+        resultView?.let {
+            windowManager?.removeViewImmediate(it)
+            resultView = null
+        }
+    }
+
+    // ────────────────────────────────────────────
+    // Result Card display
+    // ────────────────────────────────────────────
+    private fun showResultCard(verdict: String, reason: String) {
+        removeResultView() // remove existing if any
+
+        val density = resources.displayMetrics.density
+        val container = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setBackgroundColor(Color.parseColor("#EEFFFFFF")) // slightly transparent white
+            setPadding((16*density).toInt(), (16*density).toInt(), (16*density).toInt(), (16*density).toInt())
+            
+            // outline for rounded corners
+            outlineProvider = object : android.view.ViewOutlineProvider() {
+                override fun getOutline(view: View, o: android.graphics.Outline) {
+                    o.setRoundRect(0, 0, view.width, view.height, 16f * density)
+                }
+            }
+            clipToOutline = true
+
+            // elevate it
+            elevation = 8f * density
+        }
+
+        // Title / Verdict
+        val title = android.widget.TextView(this).apply {
+            text = verdict
+            textSize = 18f
+            setTextColor(if (verdict.contains("True") || verdict.contains("Verified")) Color.parseColor("#0D9488") else Color.parseColor("#DC2626"))
+            setTypeface(null, android.graphics.Typeface.BOLD)
+        }
+        container.addView(title)
+
+        // Description / Reason
+        val desc = android.widget.TextView(this).apply {
+            text = reason
+            textSize = 14f
+            setTextColor(Color.parseColor("#333333"))
+            setPadding(0, (8*density).toInt(), 0, (8*density).toInt())
+        }
+        container.addView(desc)
+
+        val tapHint = android.widget.TextView(this).apply {
+            text = "(Tap anywhere to dismiss)"
+            textSize = 12f
+            setTextColor(Color.parseColor("#888888"))
+        }
+        container.addView(tapHint)
+
+        // Tapping dismisses it
+        container.setOnClickListener {
+            removeResultView()
+        }
+
+        resultLayoutParams = WindowManager.LayoutParams(
+            (300 * density).toInt(),
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            else
+                @Suppress("DEPRECATION")
+                WindowManager.LayoutParams.TYPE_PHONE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            y = (200 * density).toInt() // drop it down a bit from the top
+        }
+
+        resultView = container
+        windowManager?.addView(container, resultLayoutParams)
+    }
+
 
     // ────────────────────────────────────────────
     // Drag + tap handling
@@ -183,7 +274,8 @@ class EchoGuardOverlayService : Service() {
         sendBroadcast(intent)
         // Also set the bridge flag so MainActivity can pick it up
         EchoGuardScanBridge.pendingScanTrigger = true
-        // Temporarily pulse the bubble yellow
+        // Show loading state by removing old result card and expanding bubble slightly
+        removeResultView()
         (bubbleView as? FrameLayout)?.getChildAt(0)?.setBackgroundColor(Color.parseColor("#F59E0B"))
         bubbleView?.postDelayed({
             (bubbleView as? FrameLayout)?.getChildAt(0)?.setBackgroundColor(Color.parseColor("#1D468B"))

@@ -34,6 +34,12 @@ class OverlayService {
     return result ?? false;
   }
 
+  static Future<void> showOverlayResult(String verdict, String reason) =>
+      _method.invokeMethod('showOverlayResult', {
+        'verdict': verdict,
+        'reason': reason,
+      });
+
   // ── Scan results stream (text extracted from screen) ──────────────────
   /// Emits a [String] each time the floating bubble is tapped and the
   /// accessibility service extracts screen text.

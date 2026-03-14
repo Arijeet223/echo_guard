@@ -56,6 +56,17 @@ class MainActivity : FlutterActivity() {
                         startActivity(intent)
                         result.success(null)
                     }
+                    "showOverlayResult" -> {
+                        val verdict = call.argument<String>("verdict") ?: ""
+                        val reason = call.argument<String>("reason") ?: ""
+                        val intent = Intent(this, EchoGuardOverlayService::class.java).apply {
+                            action = EchoGuardOverlayService.ACTION_SHOW_RESULT
+                            putExtra("verdict", verdict)
+                            putExtra("reason", reason)
+                        }
+                        startService(intent)
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }

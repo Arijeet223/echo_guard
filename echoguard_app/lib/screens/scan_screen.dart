@@ -70,6 +70,21 @@ class _ScanScreenState extends State<ScanScreen> {
         }
 
         if (!mounted) return;
+
+        // Derive a verdict string from the credibility score
+        final verdictText = result.credibility >= 70
+            ? '✅ Likely True (${result.credibility.toInt()}%)'
+            : result.credibility >= 40
+                ? '⚠️ Uncertain (${result.credibility.toInt()}%)'
+                : '❌ Likely False (${result.credibility.toInt()}%)';
+
+        // Display results on the native overlay card directly!
+        OverlayService.showOverlayResult(
+          verdictText,
+          result.aiReasoning.isNotEmpty ? result.aiReasoning : 'No details available.',
+        );
+
+        // Also push the AnalysisScreen within the app if it's active
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -81,6 +96,10 @@ class _ScanScreenState extends State<ScanScreen> {
         );
       } catch (e) {
         if (!mounted) return;
+        
+        // Notify overlay of the error so the bubble stops spinning
+        OverlayService.showOverlayResult('Error', e.toString().replaceFirst('Exception: ', ''));
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Scan failed: $e'),
