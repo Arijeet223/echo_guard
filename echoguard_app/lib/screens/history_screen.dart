@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/analysis_result.dart';
 import '../services/storage_service.dart';
+import '../services/language_provider.dart';
+import '../services/app_strings.dart';
 import 'analysis_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -21,11 +23,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
     super.initState();
     _load();
     StorageService.historyNotifier.addListener(_load);
+    LanguageProvider.instance.addListener(_onLangChange);
   }
+
+  void _onLangChange() { if (mounted) setState(() {}); }
 
   @override
   void dispose() {
     StorageService.historyNotifier.removeListener(_load);
+    LanguageProvider.instance.removeListener(_onLangChange);
     _searchCtrl.dispose();
     super.dispose();
   }
@@ -80,7 +86,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         title: Row(children: [
           const Icon(Icons.access_time, size: 28),
           const SizedBox(width: 10),
-          Text('History', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.appBarTheme.foregroundColor)),
+          Text(S.get('history'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.appBarTheme.foregroundColor)),
         ]),
         actions: [
           IconButton(icon: const Icon(Icons.search), onPressed: () => setState(() => _showSearch = !_showSearch)),

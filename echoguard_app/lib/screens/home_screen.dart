@@ -10,6 +10,8 @@ import 'notification_screen.dart';
 import '../models/feed_models.dart';
 import '../services/api_service.dart';
 import '../services/feed_service.dart';
+import '../services/language_provider.dart';
+import '../services/app_strings.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,6 +29,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _refreshFeed();
+    LanguageProvider.instance.addListener(_onLangChange);
+  }
+
+  void _onLangChange() { if (mounted) setState(() {}); }
+
+  @override
+  void dispose() {
+    LanguageProvider.instance.removeListener(_onLangChange);
+    super.dispose();
   }
 
   void _refreshFeed() {
@@ -40,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final text = _controller.text.trim();
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please paste some text or a link to analyze.')),
+        SnackBar(content: Text(S.get('no_text_error'))),
       );
       return;
     }
@@ -58,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(
+      builder: (_) => Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -66,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(height: 16),
             Material(
               color: Colors.transparent,
-              child: Text('Extracting text from image...', style: TextStyle(color: Color(0xFFD7C9B8))),
+              child: Text(S.get('extracting'), style: TextStyle(color: Color(0xFFD7C9B8))),
             ),
           ],
         ),
@@ -95,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       Navigator.pop(context); // dismiss loading
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Image analysis failed: $e')),
+        SnackBar(content: Text('${S.get('image_fail')}: $e')),
       );
     }
   }
@@ -168,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Icon(Icons.security, color: Color(0xFFD7C9B8), size: 20),
             ),
             const SizedBox(width: 8),
-            Text('Veritas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.appBarTheme.foregroundColor)),
+            Text(S.get('app_title'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.appBarTheme.foregroundColor)),
           ],
         ),
         actions: [
@@ -200,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xFF4A342A),
         foregroundColor: Color(0xFFD7C9B8),
         icon: const Icon(Icons.edit),
-        label: const Text('New Post'),
+        label: Text(S.get('create_post')),
       ),
       body: RefreshIndicator(
         onRefresh: () async => _refreshFeed(),
@@ -236,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         controller: _controller,
                         maxLines: 3,
                         decoration: InputDecoration(
-                          hintText: 'Paste text, link, or claim to analyze...',
+                          hintText: S.get('paste_text'),
                           hintStyle: TextStyle(color: Colors.black, fontSize: 14),
                           filled: true,
                           fillColor: theme.scaffoldBackgroundColor,
@@ -264,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           ElevatedButton.icon(
                             onPressed: _analyze,
-                            icon: const Text('Analyze', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                            icon: Text(S.get('analyze'), style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                             label: const Icon(Icons.send, size: 16),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF4A342A),

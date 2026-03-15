@@ -5,6 +5,8 @@ import '../models/analysis_result.dart';
 import '../services/overlay_service.dart';
 import '../services/direct_analysis_service.dart';
 import '../services/storage_service.dart';
+import '../services/language_provider.dart';
+import '../services/app_strings.dart';
 import 'analysis_screen.dart';
 
 class ScanScreen extends StatefulWidget {
@@ -27,7 +29,10 @@ class _ScanScreenState extends State<ScanScreen> {
       _checkPermissions();
       _listenForScanResults();
     }
+    LanguageProvider.instance.addListener(_onLangChange);
   }
+
+  void _onLangChange() { if (mounted) setState(() {}); }
 
   Future<void> _checkPermissions() async {
     try {
@@ -150,6 +155,7 @@ class _ScanScreenState extends State<ScanScreen> {
   @override
   void dispose() {
     _scanSub?.cancel();
+    LanguageProvider.instance.removeListener(_onLangChange);
     super.dispose();
   }
 
@@ -164,7 +170,7 @@ class _ScanScreenState extends State<ScanScreen> {
           backgroundColor: theme.appBarTheme.backgroundColor,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
-          title: Text('Guardian Overlay',
+          title: Text(S.get('guardian_overlay'),
               style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -179,16 +185,14 @@ class _ScanScreenState extends State<ScanScreen> {
               children: [
                 Icon(Icons.mobile_off, size: 80, color: Colors.black),
                 const SizedBox(height: 24),
-                Text('Android Exclusive Feature',
+                Text(S.get('android_exclusive'),
                     style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: theme.colorScheme.primary)),
                 const SizedBox(height: 16),
                 Text(
-                  'The System-Wide Guardian Bubble requires native Android '
-                  'permissions (Draw Over Other Apps & Accessibility). '
-                  'Please install the APK on your Android device.',
+                  S.get('android_exclusive_desc'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: 14,
@@ -208,7 +212,7 @@ class _ScanScreenState extends State<ScanScreen> {
         backgroundColor: theme.appBarTheme.backgroundColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        title: Text('Guardian Overlay',
+        title: Text(S.get('guardian_overlay'),
             style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -244,7 +248,7 @@ class _ScanScreenState extends State<ScanScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Guardian Bubble is ACTIVE — floating over your screen',
+                        S.get('guardian_active'),
                         style: TextStyle(
                             color: const Color(0xFF0D9488),
                             fontWeight: FontWeight.w600),
@@ -272,15 +276,14 @@ class _ScanScreenState extends State<ScanScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('System-Wide Fact Checking',
+                        Text(S.get('system_wide_fc'),
                             style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                                 color: theme.colorScheme.primary)),
                         const SizedBox(height: 4),
                         Text(
-                          'A floating bubble appears over any app. '
-                          'Tap it to instantly scan and fact-check on-screen content.',
+                          S.get('system_wide_desc'),
                           style: TextStyle(
                               fontSize: 12,
                               color: theme.textTheme.bodyMedium?.color,
@@ -294,7 +297,7 @@ class _ScanScreenState extends State<ScanScreen> {
             ),
 
             const SizedBox(height: 32),
-            Text('Required Permissions',
+            Text(S.get('required_perms'),
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -303,9 +306,8 @@ class _ScanScreenState extends State<ScanScreen> {
 
             _permissionCard(
               context,
-              title: 'Floating Bubble',
-              description:
-                  'Allows Veritas to draw a hovering button over other apps.',
+              title: S.get('floating_bubble'),
+              description: S.get('floating_bubble_desc'),
               icon: Icons.bubble_chart,
               isGranted: _hasOverlayPermission,
               onTap: _requestOverlayPermission,
@@ -313,16 +315,14 @@ class _ScanScreenState extends State<ScanScreen> {
             const SizedBox(height: 16),
             _permissionCard(
               context,
-              title: 'Screen Reader (Accessibility)',
-              description:
-                  'Settings → Accessibility → Installed services → Enable Veritas.',
+              title: S.get('screen_reader'),
+              description: S.get('screen_reader_desc'),
               icon: Icons.document_scanner,
               isGranted: _accessibilityEnabled,
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                        '📱 Go to Settings → Accessibility → Installed Apps → Veritas → Turn ON'),
+                  SnackBar(
+                    content: Text(S.get('screen_reader_snack')),
                     duration: Duration(seconds: 4),
                   ),
                 );
@@ -344,8 +344,8 @@ class _ScanScreenState extends State<ScanScreen> {
                 ),
                 label: Text(
                   _overlayActive
-                      ? 'Stop Guardian Bubble'
-                      : 'Launch Guardian Bubble',
+                      ? S.get('stop_guardian')
+                      : S.get('launch_guardian'),
                   style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -382,7 +382,7 @@ class _ScanScreenState extends State<ScanScreen> {
                       const Icon(Icons.info_outline,
                           color: Color(0xFFCD853F), size: 18),
                       const SizedBox(width: 8),
-                      Text('How to enable Accessibility',
+                      Text(S.get('how_to_access'),
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Color(0xFFCD853F))),
@@ -390,11 +390,7 @@ class _ScanScreenState extends State<ScanScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '1. Open your phone Settings\n'
-                    '2. Tap Accessibility\n'
-                    '3. Tap Installed apps / Downloaded apps\n'
-                    '4. Find Veritas and toggle it ON\n'
-                    '5. Come back here and tap Launch',
+                    S.get('access_steps'),
                     style: TextStyle(
                         fontSize: 13,
                         color: Color(0xFFCD853F),

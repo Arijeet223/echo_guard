@@ -28,6 +28,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadProfile();
+    LanguageProvider.instance.addListener(_onLanguageChange);
+  }
+
+  void _onLanguageChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    LanguageProvider.instance.removeListener(_onLanguageChange);
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {
