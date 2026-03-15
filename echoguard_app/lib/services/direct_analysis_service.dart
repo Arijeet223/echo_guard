@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import '../models/analysis_result.dart';
+import 'language_provider.dart';
 
 /// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 /// Veritas Direct Analysis Service
@@ -27,9 +28,15 @@ class DirectAnalysisService {
   static const String _inceptionUrl = 'https://api.inceptionlabs.ai/v1/chat/completions';
   static const String _inceptionModel = 'mercury-2';          // ← full model, NOT coder-small
 
-  /// OCR.space — free text extraction from images
+  /// OCR.space — text extraction from images
   static const String _ocrSpaceKey = 'K86345433788957';
   static const String _ocrSpaceUrl = 'https://api.ocr.space/parse/image';
+
+  /// News API keys (available for future use)
+  // ignore: unused_field
+  static const String _bbcNewsApiKey = 'pub_f6b47aba4b2a41fbba973a5bded2b884';
+  // ignore: unused_field
+  static const String _newsApiKey = '35e869935b2448848129c9ca5e306f52';
 
   // ══════════════════════════════════════════════════════════════════════
   //  SYSTEM PROMPT  (identical to main.py backend but with RAG instructions)
@@ -193,7 +200,7 @@ Rules:
     request.fields['base64Image'] = base64Url;
 
     final streamedResponse = await request.send()
-        .timeout(const Duration(seconds: 45));
+        .timeout(const Duration(seconds: 15));
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode != 200) {
@@ -235,7 +242,7 @@ Rules:
       final url = 'https://news.google.com/rss/search?q=$query&hl=en-US&gl=US&ceid=US:en';
       print('[Veritas] Live News Web Search: $url');
       
-      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 3));
       if (response.statusCode != 200) return 'News search failed (HTTP ${response.statusCode}).';
 
       final rss = response.body;
@@ -284,8 +291,11 @@ Rules:
       final newsContext = await _scrapeNews(text);
       
       // 2. Build the combined prompt
+      final hindiDirective = LanguageProvider.instance.isHindi
+          ? '\n\nIMPORTANT: The user speaks Hindi. Write the "ai_reasoning" field and "balanced_views" entries in Hindi (Devanagari script). Keep JSON keys in English.'
+          : '';
       final combinedPrompt = 'CLAIM TO ANALYZE:\n"$text"\n\n$newsContext\n\n'
-          'Remember: Prioritize the live news search results to determine if the claim is factual, misleading, or outright false. Give a precise credibility score.';
+          'Remember: Prioritize the live news search results to determine if the claim is factual, misleading, or outright false. Give a precise credibility score.$hindiDirective';
 
       print('[Veritas] Calling Inception Mercury-2 with RAG context...');
 
@@ -302,10 +312,10 @@ Rules:
             {'role': 'user', 'content': combinedPrompt},
           ],
           'response_format': {'type': 'json_object'},
-          'max_tokens': 1500,
+          'max_tokens': 800,
           'temperature': 0.1,       // low temp = consistent, factual output
         }),
-      ).timeout(const Duration(seconds: 45));
+      ).timeout(const Duration(seconds: 20));
 
       if (response.statusCode != 200) {
         print('[Veritas] Inception API HTTP ${response.statusCode}: ${response.body}');

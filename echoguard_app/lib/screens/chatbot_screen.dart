@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../services/direct_analysis_service.dart';
 import '../services/storage_service.dart';
+import '../services/language_provider.dart';
+import '../services/app_strings.dart';
 import '../models/analysis_result.dart';
 import '../models/feed_models.dart';
 import '../services/feed_service.dart';
+import '../widgets/avatar_controller.dart';
 
 class ChatMessage {
   final String text;
@@ -31,7 +34,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     super.initState();
     // Initial greeting
     _messages.add(ChatMessage(
-      text: 'Hello! I am Mira, your Veritas AI assistant. Ask me to fact-check any claim, news, or rumor!',
+      text: S.get('mira_greeting'),
       isUser: false,
     ));
   }
@@ -50,11 +53,13 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     final lower = text.toLowerCase().replaceAll(RegExp(r'[^\w\s]'), '').trim();
     if (lower == 'hi' || lower == 'hello' || lower == 'hey' || lower == 'hie') {
       if (!mounted) return;
+      AvatarController.instance.show(AvatarState.hi);
       setState(() {
         _isTyping = false;
-        _messages.add(ChatMessage(text: 'Hello! How can I help you today?', isUser: false));
+        _messages.add(ChatMessage(text: S.get('mira_hello'), isUser: false));
       });
       _scrollToBottom();
+      Future.delayed(const Duration(seconds: 2), () => AvatarController.instance.hide());
       return;
     }
 
@@ -64,16 +69,18 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         final topNews = feed.whereType<NewsItem>().take(2).toList();
         
         if (topNews.isNotEmpty) {
-          String reply = 'Here is the latest popular news for you:\n\n';
+          String reply = '${S.get('latest_news')}:\n\n';
           for (var i = 0; i < topNews.length; i++) {
             reply += '${i + 1}. 📰 ${topNews[i].title}\n🔗 ${topNews[i].url}\n\n';
           }
+          AvatarController.instance.show(AvatarState.happy);
           if (!mounted) return;
           setState(() {
             _isTyping = false;
             _messages.add(ChatMessage(text: reply.trim(), isUser: false));
           });
           _scrollToBottom();
+          Future.delayed(const Duration(seconds: 2), () => AvatarController.instance.hide());
           return;
         }
       } catch (_) {
@@ -81,6 +88,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       }
     }
 
+    AvatarController.instance.show(AvatarState.thinking);
     try {
       final result = await DirectAnalysisService.analyzeText(text);
       
@@ -90,11 +98,17 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       // Construct conversational reply
       final scoreStr = result.credibility.toInt().toString();
       final emoji = result.credibility >= 70 ? '✅' : result.credibility >= 40 ? '⚠️' : '❌';
-      final reply = '$emoji I analyzed that claim.\n\n'
-          'Credibility Score: $scoreStr/100\n'
-          'Verdict: ${result.aiReasoning}';
+      final reply = '$emoji ${LanguageProvider.instance.isHindi ? 'मैंने उस दावे का विश्लेषण किया।' : 'I analyzed that claim.'}\n\n'
+          '${S.get('credibility')}: $scoreStr/100\n'
+          '${S.get('verdict')}: ${result.aiReasoning}';
 
       if (!mounted) return;
+      // Avatar reacts to the analysis result
+      AvatarController.instance.showResultThenHide({
+        'credibility': result.credibility,
+        'manipulation_level': result.manipulation.level,
+        'propaganda_flag': result.bias.propagandaFlag,
+      });
       setState(() {
         _isTyping = false;
         _messages.add(ChatMessage(text: reply, isUser: false, analysisResult: result));
@@ -105,7 +119,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       setState(() {
         _isTyping = false;
         _messages.add(ChatMessage(
-          text: 'Oops, I hit a snag trying to analyze that: ${e.toString()}',
+          text: '${S.get('mira_error')}: ${e.toString()}',
           isUser: false,
         ));
       });
@@ -230,7 +244,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           children: [
             const Icon(Icons.smart_toy, size: 14, color: Color(0xFF4A342A)),
             const SizedBox(width: 8),
-            Text('Mira is analyzing...', style: TextStyle(color: Colors.black, fontSize: 13, fontStyle: FontStyle.italic)),
+            Text(S.get('mira_analyzing'), style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black, fontSize: 13, fontStyle: FontStyle.italic)),
           ],
         ),
       ),
@@ -255,10 +269,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _sendMessage(),
                 decoration: InputDecoration(
-                  hintText: 'Message Mira...',
-                  hintStyle: TextStyle(color: Colors.black),
+                  hintText: S.get('msg_mira'),
+                  hintStyle: TextStyle(color: Colors.black54),
                   filled: true,
-                  fillColor: isDark ? theme.scaffoldBackgroundColor : Colors.black,
+                  fillColor: isDark ? theme.scaffoldBackgroundColor : Colors.white,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
                 ),

@@ -421,9 +421,9 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                     controller: _commentController,
                     decoration: InputDecoration(
                       hintText: 'Add a comment...',
-                      hintStyle: TextStyle(color: Colors.black),
+                      hintStyle: TextStyle(color: Colors.black54),
                       filled: true,
-                      fillColor: Colors.black,
+                      fillColor: Colors.white,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
                     ),

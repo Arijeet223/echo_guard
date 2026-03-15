@@ -56,6 +56,7 @@ class ThemeProvider extends ChangeNotifier {
       brightness: Brightness.dark,
       primary: const Color(0xFF4A90D9),
       surface: const Color(0xFF1A1A2E),
+      onSurface: Colors.white,
     ),
     scaffoldBackgroundColor: const Color(0xFF0F0F1A),
     cardColor: const Color(0xFF1A1A2E),
@@ -68,7 +69,19 @@ class ThemeProvider extends ChangeNotifier {
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: Color(0xFF1A1A2E),
       selectedItemColor: Color(0xFF4A90D9),
-      unselectedItemColor: Colors.black,
+      unselectedItemColor: Colors.white70,
+    ),
+    iconTheme: const IconThemeData(color: Colors.white70),
+    textTheme: const TextTheme(
+      bodyLarge: TextStyle(color: Colors.white),
+      bodyMedium: TextStyle(color: Colors.white),
+      bodySmall: TextStyle(color: Colors.white70),
+      titleLarge: TextStyle(color: Colors.white),
+      titleMedium: TextStyle(color: Colors.white),
+      titleSmall: TextStyle(color: Colors.white),
+      labelLarge: TextStyle(color: Colors.white),
+      labelMedium: TextStyle(color: Colors.white70),
+      labelSmall: TextStyle(color: Colors.white70),
     ),
     useMaterial3: true,
   );

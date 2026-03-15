@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'services/theme_provider.dart';
+import 'services/language_provider.dart';
+import 'services/app_strings.dart';
 import 'screens/home_screen.dart';
 import 'screens/scan_screen.dart';
 import 'screens/chatbot_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/profile_screen.dart';
+import 'widgets/avatar_widget.dart';
 
 void main() {
   runApp(const VeritasApp());
@@ -26,6 +29,7 @@ class _VeritasAppState extends State<VeritasApp> {
   void initState() {
     super.initState();
     VeritasApp.themeProvider.addListener(() => setState(() {}));
+    LanguageProvider.instance.addListener(() => setState(() {}));
   }
 
   @override
@@ -42,6 +46,14 @@ class _VeritasAppState extends State<VeritasApp> {
       ),
       themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
       home: const MainNavigation(),
+      builder: (context, child) {
+        return Stack(
+          children: [
+            child!,
+            const AvatarWidget(),
+          ],
+        );
+      },
     );
   }
 }
@@ -84,17 +96,17 @@ class _MainNavigationState extends State<MainNavigation> {
           type: BottomNavigationBarType.fixed,
           backgroundColor: isDark ? const Color(0xFF1A1A2E) : Color(0xFFD7C9B8),
           selectedItemColor: theme.colorScheme.primary,
-          unselectedItemColor: Colors.black,
+          unselectedItemColor: isDark ? Colors.white70 : Colors.black,
           selectedFontSize: 10,
           unselectedFontSize: 10,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: -0.3),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, letterSpacing: -0.3),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'HOME'),
-            BottomNavigationBarItem(icon: Icon(Icons.smart_toy), label: 'MIRA'),
-            BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'SCAN'),
-            BottomNavigationBarItem(icon: Icon(Icons.history), label: 'HISTORY'),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'PROFILE'),
+          items: [
+            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: S.get('home')),
+            BottomNavigationBarItem(icon: Icon(Icons.smart_toy), label: S.get('mira')),
+            BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: S.get('scan')),
+            BottomNavigationBarItem(icon: Icon(Icons.history), label: S.get('history')),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: S.get('profile')),
           ],
         ),
       ),

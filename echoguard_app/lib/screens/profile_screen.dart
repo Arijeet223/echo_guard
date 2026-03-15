@@ -2,6 +2,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/storage_service.dart';
+import '../services/language_provider.dart';
+import '../services/app_strings.dart';
 import '../main.dart';
 import 'notification_screen.dart';
 import 'history_screen.dart';
@@ -161,13 +163,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 4),
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 const Text('ELITE VERIFIER', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF4A342A), letterSpacing: 0.8)),
-                Container(margin: const EdgeInsets.symmetric(horizontal: 6), width: 4, height: 4, decoration: BoxDecoration(color: Colors.black, shape: BoxShape.circle)),
-                Text('Joined March 2026', style: TextStyle(fontSize: 12, color: Colors.black)),
+                Container(margin: const EdgeInsets.symmetric(horizontal: 6), width: 4, height: 4, decoration: BoxDecoration(color: isDark ? Colors.white : Colors.black, shape: BoxShape.circle)),
+                Text('Joined March 2026', style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black)),
               ]),
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 48),
-                child: Text(_bio, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.black)),
+                child: Text(_bio, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black)),
               ),
             ],
 
@@ -195,12 +197,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Recent Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(S.get('recent_activity'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   TextButton(
                     onPressed: () {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => HistoryScreen()));
                     },
-                    child: const Text('View All', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    child: Text(S.get('view_all'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                   ),
                 ],
               ),
@@ -209,9 +211,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(children: [
-                  Icon(Icons.history_toggle_off, size: 40, color: Colors.black),
+                  Icon(Icons.history_toggle_off, size: 40, color: isDark ? Colors.white54 : Colors.black),
                   const SizedBox(height: 8),
-                  Text('No recent activity', style: TextStyle(fontSize: 14, color: Colors.black)),
+                  Text('No recent activity', style: TextStyle(fontSize: 14, color: isDark ? Colors.white54 : Colors.black)),
                 ]),
               )
             else
@@ -225,23 +227,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Preferences', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(S.get('preferences'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   Container(
                     decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: theme.dividerColor)),
                     child: Column(children: [
-                      _settingsItem(Icons.language, 'Language', trailing: 'English', theme: theme),
+                      _settingsItem(Icons.language, S.get('language'), trailing: LanguageProvider.instance.isHindi ? 'हिंदी' : 'English', theme: theme, onTap: () { LanguageProvider.instance.toggle(); }),
                       Divider(height: 1, color: theme.dividerColor),
-                      _settingsItem(Icons.dark_mode, 'Dark Mode', isToggle: true, theme: theme, isDark: isDark),
+                      _settingsItem(Icons.dark_mode, S.get('dark_mode'), isToggle: true, theme: theme, isDark: isDark),
                       Divider(height: 1, color: theme.dividerColor),
                       _settingsItem(
                         Icons.notifications_active, 
-                        'Notifications', 
+                        S.get('notifications'), 
                         theme: theme, 
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
                       ),
                       Divider(height: 1, color: theme.dividerColor),
-                      _settingsItem(Icons.logout, 'Logout', isDestructive: true, theme: theme),
+                      _settingsItem(Icons.logout, S.get('logout'), isDestructive: true, theme: theme),
                     ]),
                   ),
                 ],
