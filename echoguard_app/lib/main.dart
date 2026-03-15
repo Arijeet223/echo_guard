@@ -3,35 +3,36 @@ import 'package:google_fonts/google_fonts.dart';
 import 'services/theme_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/scan_screen.dart';
+import 'screens/chatbot_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/profile_screen.dart';
 
 void main() {
-  runApp(const EchoGuardApp());
+  runApp(const VeritasApp());
 }
 
-class EchoGuardApp extends StatefulWidget {
-  const EchoGuardApp({super.key});
+class VeritasApp extends StatefulWidget {
+  const VeritasApp({super.key});
 
   // Global access to theme provider
   static final ThemeProvider themeProvider = ThemeProvider();
 
   @override
-  State<EchoGuardApp> createState() => _EchoGuardAppState();
+  State<VeritasApp> createState() => _VeritasAppState();
 }
 
-class _EchoGuardAppState extends State<EchoGuardApp> {
+class _VeritasAppState extends State<VeritasApp> {
   @override
   void initState() {
     super.initState();
-    EchoGuardApp.themeProvider.addListener(() => setState(() {}));
+    VeritasApp.themeProvider.addListener(() => setState(() {}));
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = EchoGuardApp.themeProvider.isDark;
+    final isDark = VeritasApp.themeProvider.isDark;
     return MaterialApp(
-      title: 'EchoGuard',
+      title: 'Veritas',
       debugShowCheckedModeBanner: false,
       theme: ThemeProvider.lightTheme.copyWith(
         textTheme: GoogleFonts.interTextTheme(ThemeProvider.lightTheme.textTheme),
@@ -57,6 +58,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
+    const ChatbotScreen(),
     const ScanScreen(),
     const HistoryScreen(),
     const ProfileScreen(),
@@ -80,15 +82,16 @@ class _MainNavigationState extends State<MainNavigation> {
           currentIndex: _currentIndex,
           onTap: (i) => setState(() => _currentIndex = i),
           type: BottomNavigationBarType.fixed,
-          backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+          backgroundColor: isDark ? const Color(0xFF1A1A2E) : Color(0xFFD7C9B8),
           selectedItemColor: theme.colorScheme.primary,
-          unselectedItemColor: Colors.grey.shade500,
+          unselectedItemColor: Colors.black,
           selectedFontSize: 10,
           unselectedFontSize: 10,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: -0.3),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, letterSpacing: -0.3),
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'HOME'),
+            BottomNavigationBarItem(icon: Icon(Icons.smart_toy), label: 'MIRA'),
             BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'SCAN'),
             BottomNavigationBarItem(icon: Icon(Icons.history), label: 'HISTORY'),
             BottomNavigationBarItem(icon: Icon(Icons.person), label: 'PROFILE'),

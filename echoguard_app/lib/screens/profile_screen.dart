@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/storage_service.dart';
 import '../main.dart';
+import 'notification_screen.dart';
+import 'history_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,7 +15,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditing = false;
-  String _username = '@EchoGuard_User';
+  String _username = '@Veritas_User';
   String _bio = 'Passionate about digital truth and combating misinformation.';
   final TextEditingController _nameCtrl = TextEditingController();
   final TextEditingController _bioCtrl = TextEditingController();
@@ -59,9 +61,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Color _verdictColor(String v) {
-    if (v == 'Verified') return const Color(0xFF10B981);
-    if (v == 'Misleading') return Colors.amber.shade700;
-    return Colors.red;
+    if (v == 'Verified') return const Color(0xFF556B2F);
+    if (v == 'Misleading') return Color(0xFFCD853F);
+    return Color(0xFF8B0000);
   }
 
   IconData _verdictIcon(String v) {
@@ -94,7 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _isEditing ? 'Save' : 'Edit',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: _isEditing ? const Color(0xFF10B981) : const Color(0xFF1D468B),
+                color: _isEditing ? const Color(0xFF556B2F) : const Color(0xFF4A342A),
               ),
             ),
           ),
@@ -115,29 +117,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     width: 120, height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFD4A373).withOpacity(0.3), width: 4),
-                      gradient: const LinearGradient(colors: [Color(0xFF1D468B), Color(0xFFD4A373)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                      border: Border.all(color: const Color(0xFFB2967D).withOpacity(0.3), width: 4),
+                      gradient: const LinearGradient(colors: [Color(0xFF4A342A), Color(0xFFB2967D)], begin: Alignment.topLeft, end: Alignment.bottomRight),
                     ),
                     padding: const EdgeInsets.all(4),
                     child: CircleAvatar(
                       radius: 52,
-                      backgroundColor: const Color(0xFF1D468B),
+                      backgroundColor: const Color(0xFF4A342A),
                       backgroundImage: _imageBytes != null ? MemoryImage(_imageBytes!) : null,
-                      child: _imageBytes == null ? const Icon(Icons.person, size: 48, color: Colors.white) : null,
+                      child: _imageBytes == null ? const Icon(Icons.person, size: 48, color: Color(0xFFD7C9B8)) : null,
                     ),
                   ),
                   // Camera overlay in edit mode
                   if (_isEditing)
                     Container(
                       padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(color: const Color(0xFF1D468B), shape: BoxShape.circle, border: Border.all(color: const Color(0xFFFDFBF7), width: 2)),
-                      child: const Icon(Icons.photo_camera, size: 16, color: Colors.white),
+                      decoration: BoxDecoration(color: const Color(0xFF4A342A), shape: BoxShape.circle, border: Border.all(color: const Color(0xFFD7C9B8), width: 2)),
+                      child: const Icon(Icons.photo_camera, size: 16, color: Color(0xFFD7C9B8)),
                     )
                   else
                     Container(
                       padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(color: const Color(0xFFD4A373), shape: BoxShape.circle, border: Border.all(color: const Color(0xFFFDFBF7), width: 2)),
-                      child: const Icon(Icons.verified, size: 14, color: Colors.white),
+                      decoration: BoxDecoration(color: const Color(0xFFB2967D), shape: BoxShape.circle, border: Border.all(color: const Color(0xFFD7C9B8), width: 2)),
+                      child: const Icon(Icons.verified, size: 14, color: Color(0xFFD7C9B8)),
                     ),
                 ],
               ),
@@ -158,14 +160,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Text(_username, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Text('ELITE VERIFIER', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1D468B), letterSpacing: 0.8)),
-                Container(margin: const EdgeInsets.symmetric(horizontal: 6), width: 4, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, shape: BoxShape.circle)),
-                Text('Joined March 2026', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                const Text('ELITE VERIFIER', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF4A342A), letterSpacing: 0.8)),
+                Container(margin: const EdgeInsets.symmetric(horizontal: 6), width: 4, height: 4, decoration: BoxDecoration(color: Colors.black, shape: BoxShape.circle)),
+                Text('Joined March 2026', style: TextStyle(fontSize: 12, color: Colors.black)),
               ]),
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 48),
-                child: Text(_bio, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                child: Text(_bio, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.black)),
               ),
             ],
 
@@ -194,7 +196,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Recent Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  TextButton(onPressed: () {}, child: const Text('View All', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => HistoryScreen()));
+                    },
+                    child: const Text('View All', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  ),
                 ],
               ),
             ),
@@ -202,9 +209,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(children: [
-                  Icon(Icons.history_toggle_off, size: 40, color: Colors.grey.shade300),
+                  Icon(Icons.history_toggle_off, size: 40, color: Colors.black),
                   const SizedBox(height: 8),
-                  Text('No recent activity', style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+                  Text('No recent activity', style: TextStyle(fontSize: 14, color: Colors.black)),
                 ]),
               )
             else
@@ -227,7 +234,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Divider(height: 1, color: theme.dividerColor),
                       _settingsItem(Icons.dark_mode, 'Dark Mode', isToggle: true, theme: theme, isDark: isDark),
                       Divider(height: 1, color: theme.dividerColor),
-                      _settingsItem(Icons.notifications_active, 'Notifications', theme: theme),
+                      _settingsItem(
+                        Icons.notifications_active, 
+                        'Notifications', 
+                        theme: theme, 
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
+                      ),
                       Divider(height: 1, color: theme.dividerColor),
                       _settingsItem(Icons.logout, 'Logout', isDestructive: true, theme: theme),
                     ]),
@@ -246,16 +258,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.7),
+          color: Color(0xFFD7C9B8).withOpacity(0.7),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: Colors.black),
         ),
         child: Column(children: [
-          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5, color: Colors.grey.shade500)),
+          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5, color: Colors.black)),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1D468B))),
+          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF4A342A))),
           const SizedBox(height: 2),
-          Text(delta, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+          Text(delta, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF556B2F))),
         ]),
       ),
     );
@@ -280,7 +292,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Analyzed: "${item.text}"', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 2),
-              Text('${item.verdict} (Score: ${item.score.toStringAsFixed(0)}/100)', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+              Text('${item.verdict} (Score: ${item.score.toStringAsFixed(0)}/100)', style: TextStyle(fontSize: 11, color: Colors.black)),
             ]),
           ),
         ]),
@@ -288,40 +300,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _settingsItem(IconData icon, String label, {String? trailing, bool isToggle = false, bool isDestructive = false, required ThemeData theme, bool isDark = false}) {
+  Widget _settingsItem(IconData icon, String label, {String? trailing, bool isToggle = false, bool isDestructive = false, required ThemeData theme, bool isDark = false, VoidCallback? onTap}) {
     return ListTile(
-      leading: Icon(icon, color: isDestructive ? Colors.red : theme.iconTheme.color),
-      title: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: isDestructive ? Colors.red : theme.textTheme.bodyLarge?.color)),
+      leading: Icon(icon, color: isDestructive ? Color(0xFF8B0000) : theme.iconTheme.color),
+      title: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: isDestructive ? Color(0xFF8B0000) : theme.textTheme.bodyLarge?.color)),
       trailing: trailing != null
           ? Row(mainAxisSize: MainAxisSize.min, children: [
-              Text(trailing, style: TextStyle(fontSize: 13, color: Colors.grey.shade400)),
+              Text(trailing, style: TextStyle(fontSize: 13, color: Colors.black)),
               const SizedBox(width: 4),
-              Icon(Icons.chevron_right, color: Colors.grey.shade300),
+              Icon(Icons.chevron_right, color: Colors.black),
             ])
           : isToggle
               ? Switch(
                   value: isDark, 
                   onChanged: (_) {
-                    EchoGuardApp.themeProvider.toggle();
+                    VeritasApp.themeProvider.toggle();
                   },
                   activeColor: theme.colorScheme.primary,
                 )
-              : Icon(Icons.chevron_right, color: Colors.grey.shade300),
-      onTap: isDestructive ? () async {
+              : Icon(Icons.chevron_right, color: Colors.black),
+      onTap: onTap ?? (isDestructive ? () async {
         final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
           backgroundColor: theme.dialogBackgroundColor,
           title: Text('Logout', style: TextStyle(color: theme.textTheme.titleLarge?.color)),
           content: Text('Are you sure you want to log out?', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancel', style: TextStyle(color: theme.colorScheme.primary))),
-            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Logout', style: TextStyle(color: Colors.red))),
+            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Logout', style: TextStyle(color: Color(0xFF8B0000)))),
           ],
         ));
         if (confirm == true) {
           await StorageService.clearHistory();
           _loadProfile();
         }
-      } : null,
+      } : null),
     );
   }
 }

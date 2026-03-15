@@ -39,6 +39,7 @@ class EchoGuardOverlayService : Service() {
     private var windowManager: WindowManager? = null
     private var bubbleView: View? = null
     private var resultView: View? = null
+    private var loadingOverlay: View? = null
     private lateinit var layoutParams: WindowManager.LayoutParams
     private lateinit var resultLayoutParams: WindowManager.LayoutParams
 
@@ -91,29 +92,26 @@ class EchoGuardOverlayService : Service() {
         val density = resources.displayMetrics.density
         val sizePx  = (BUBBLE_DP * density).toInt()
 
-        // Outer container so the touch target is generous
         val container = FrameLayout(this)
 
-        // Circular background view
+        // Circular background view — Espresso color
         val bg = View(this)
-        bg.setBackgroundColor(Color.parseColor("#1D468B"))  // EchoGuard blue
+        bg.setBackgroundColor(Color.parseColor("#4A342A"))
         bg.layoutParams = FrameLayout.LayoutParams(sizePx, sizePx)
         container.addView(bg)
 
-        // Shield icon label (unicode shield — avoids drawable asset dependency)
+        // "V" icon (Veritas branding, avoids drawable asset dependency)
         val icon = android.widget.TextView(this)
-        icon.text = "🛡"
-        icon.textSize = 26f
+        icon.text = "V"
+        icon.textSize = 28f
+        icon.setTextColor(Color.parseColor("#D7C9B8"))  // Khaki
         icon.gravity = Gravity.CENTER
+        icon.setTypeface(null, android.graphics.Typeface.BOLD)
         icon.layoutParams = FrameLayout.LayoutParams(sizePx, sizePx)
         container.addView(icon)
 
         // Make the bubble circular via clip-to-outline
         bg.post {
-            bg.pivotX = sizePx / 2f
-            bg.pivotY = sizePx / 2f
-            val outline = android.graphics.Outline()
-            outline.setOval(0, 0, sizePx, sizePx)
             bg.outlineProvider = object : android.view.ViewOutlineProvider() {
                 override fun getOutline(view: View, o: android.graphics.Outline) {
                     o.setOval(0, 0, view.width, view.height)
@@ -148,6 +146,68 @@ class EchoGuardOverlayService : Service() {
         EchoGuardScanBridge.overlayRunning = true
     }
 
+    // ────────────────────────────────────────────
+    // Loading spinner overlay (shown during analysis)
+    // ────────────────────────────────────────────
+    private fun showLoadingSpinner() {
+        removeLoadingSpinner()
+        val density = resources.displayMetrics.density
+        val sizePx = (80 * density).toInt()
+
+        val container = FrameLayout(this)
+        container.setBackgroundColor(Color.parseColor("#CC4A342A"))
+        container.outlineProvider = object : android.view.ViewOutlineProvider() {
+            override fun getOutline(view: View, o: android.graphics.Outline) {
+                o.setRoundRect(0, 0, view.width, view.height, 16f * density)
+            }
+        }
+        container.clipToOutline = true
+
+        val spinner = android.widget.ProgressBar(this).apply {
+            isIndeterminate = true
+            layoutParams = FrameLayout.LayoutParams(
+                (40 * density).toInt(), (40 * density).toInt(), Gravity.CENTER
+            )
+            indeterminateTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#D7C9B8"))
+        }
+        container.addView(spinner)
+
+        val label = android.widget.TextView(this).apply {
+            text = "Scanning..."
+            textSize = 11f
+            setTextColor(Color.parseColor("#D7C9B8"))
+            gravity = Gravity.CENTER_HORIZONTAL
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            ).apply { bottomMargin = (6 * density).toInt() }
+        }
+        container.addView(label)
+
+        val params = WindowManager.LayoutParams(
+            sizePx, sizePx,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            else
+                @Suppress("DEPRECATION")
+                WindowManager.LayoutParams.TYPE_PHONE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.CENTER
+        }
+
+        loadingOverlay = container
+        windowManager?.addView(container, params)
+    }
+
+    private fun removeLoadingSpinner() {
+        loadingOverlay?.let { windowManager?.removeViewImmediate(it) }
+        loadingOverlay = null
+    }
+
     private fun removeBubble() {
         bubbleView?.let {
             windowManager?.removeViewImmediate(it)
@@ -169,6 +229,8 @@ class EchoGuardOverlayService : Service() {
     // ────────────────────────────────────────────
     private fun showResultCard(verdict: String, reason: String) {
         removeResultView() // remove existing if any
+        removeLoadingSpinner() // hide the loading spinner
+        showBubble() // re-show the idle bubble
 
         val density = resources.displayMetrics.density
         val container = android.widget.LinearLayout(this).apply {
@@ -269,19 +331,183 @@ class EchoGuardOverlayService : Service() {
     }
 
     private fun triggerScan() {
-        // Tell the accessibility service to collect screen text
-        val intent = Intent(SCAN_TRIGGER).setPackage(packageName)
-        sendBroadcast(intent)
-        // Also set the bridge flag so MainActivity can pick it up
-        EchoGuardScanBridge.pendingScanTrigger = true
-        // Show loading state by removing old result card and expanding bubble slightly
-        removeResultView()
-        (bubbleView as? FrameLayout)?.getChildAt(0)?.setBackgroundColor(Color.parseColor("#F59E0B"))
-        bubbleView?.postDelayed({
-            (bubbleView as? FrameLayout)?.getChildAt(0)?.setBackgroundColor(Color.parseColor("#1D468B"))
-        }, 600)
+        enterSelectionMode()
     }
 
+    private var selectionOverlay: View? = null
+    private var confirmView: View? = null
+
+    private fun enterSelectionMode() {
+        removeBubble()
+        removeResultView()
+
+        val container = object : FrameLayout(this) {
+            private val strokePaint = android.graphics.Paint().apply {
+                color = Color.parseColor("#4A5D23") // Earthy Olive
+                style = android.graphics.Paint.Style.STROKE
+                strokeWidth = 10f
+            }
+            private val bgPaint = android.graphics.Paint().apply {
+                color = Color.parseColor("#66000000") // Dim background
+            }
+            private val clearPaint = android.graphics.Paint().apply {
+                xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.CLEAR)
+            }
+
+            var startX = 0f
+            var startY = 0f
+            var currX = 0f
+            var currY = 0f
+            var isDrawing = false
+
+            override fun onDraw(canvas: android.graphics.Canvas) {
+                super.onDraw(canvas)
+                canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bgPaint)
+                if (isDrawing) {
+                    val rLeft = Math.min(startX, currX)
+                    val rTop = Math.min(startY, currY)
+                    val rRight = Math.max(startX, currX)
+                    val rBottom = Math.max(startY, currY)
+                    // Punch a clean hole in the dim background
+                    canvas.drawRect(rLeft, rTop, rRight, rBottom, clearPaint)
+                    // Draw Stroke
+                    canvas.drawRect(rLeft, rTop, rRight, rBottom, strokePaint)
+                }
+            }
+
+            override fun onTouchEvent(event: MotionEvent): Boolean {
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        if (confirmView != null) cancelSelection() // user tapped somewhere else while confirm dialog was open
+                        startX = event.x
+                        startY = event.y
+                        currX = event.x
+                        currY = event.y
+                        isDrawing = true
+                        invalidate()
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        currX = event.x
+                        currY = event.y
+                        invalidate()
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        val rLeft = Math.min(startX, currX).toInt()
+                        val rTop = Math.min(startY, currY).toInt()
+                        val rRight = Math.max(startX, currX).toInt()
+                        val rBottom = Math.max(startY, currY).toInt()
+                        
+                        if (rRight - rLeft > 100 && rBottom - rTop > 100) {
+                            showConfirmationDialog(rLeft, rTop, rRight, rBottom)
+                        } else {
+                            // Canceled by very small tap
+                            isDrawing = false
+                            invalidate()
+                            cancelSelection()
+                        }
+                    }
+                }
+                return true
+            }
+        }
+        container.setWillNotDraw(false)
+        container.setLayerType(View.LAYER_TYPE_SOFTWARE, null) // Required for CLEAR xfermode
+
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            else
+                @Suppress("DEPRECATION")
+                WindowManager.LayoutParams.TYPE_PHONE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT
+        )
+        selectionOverlay = container
+        windowManager?.addView(container, params)
+    }
+
+    private fun showConfirmationDialog(left: Int, top: Int, right: Int, bottom: Int) {
+        if (confirmView != null) windowManager?.removeViewImmediate(confirmView)
+
+        val container = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            setBackgroundColor(Color.parseColor("#4A342A")) // Espresso
+            setPadding(24, 24, 24, 24)
+            // Round corners
+            outlineProvider = object : android.view.ViewOutlineProvider() {
+                override fun getOutline(view: View, o: android.graphics.Outline) {
+                    o.setRoundRect(0, 0, view.width, view.height, 16f)
+                }
+            }
+            clipToOutline = true
+            elevation = 16f
+        }
+
+        val btnCancel = android.widget.Button(this).apply {
+            text = "✖ Cancel"
+            setTextColor(Color.WHITE)
+            setBackgroundColor(Color.TRANSPARENT)
+            setOnClickListener { cancelSelection() }
+        }
+        val btnAnalyze = android.widget.Button(this).apply {
+            text = "✔ Analyze"
+            setTextColor(Color.parseColor("#4A342A"))
+            setBackgroundColor(Color.parseColor("#D7C9B8")) // Khaki
+            setOnClickListener {
+                confirmSelection(left, top, right - left, bottom - top)
+            }
+        }
+        container.addView(btnCancel)
+        container.addView(btnAnalyze)
+
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            else
+                @Suppress("DEPRECATION")
+                WindowManager.LayoutParams.TYPE_PHONE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = Math.max(0, left)
+            y = Math.min(resources.displayMetrics.heightPixels - 200, bottom + 20)
+        }
+        confirmView = container
+        windowManager?.addView(container, params)
+    }
+
+    private fun cancelSelection() {
+        selectionOverlay?.let { windowManager?.removeViewImmediate(it) }
+        selectionOverlay = null
+        confirmView?.let { windowManager?.removeViewImmediate(it) }
+        confirmView = null
+        showBubble()
+    }
+
+    private fun confirmSelection(left: Int, top: Int, width: Int, height: Int) {
+        selectionOverlay?.let { windowManager?.removeViewImmediate(it) }
+        selectionOverlay = null
+        confirmView?.let { windowManager?.removeViewImmediate(it) }
+        confirmView = null
+
+        // Show loading spinner while analysis is running
+        showLoadingSpinner()
+
+        val intent = Intent(SCAN_TRIGGER).setPackage(packageName)
+        intent.putExtra("cropLeft", left)
+        intent.putExtra("cropTop", top)
+        intent.putExtra("cropWidth", width)
+        intent.putExtra("cropHeight", height)
+        sendBroadcast(intent)
+
+        EchoGuardScanBridge.pendingScanTrigger = true
+    }
     // ────────────────────────────────────────────
     // Notification (required for foreground service)
     // ────────────────────────────────────────────

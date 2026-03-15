@@ -35,7 +35,7 @@ class _ShazamBubbleState extends State<ShazamBubble>
 
   double _score = 0;
   String _verdict = '';
-  Color _verdictColor = Colors.green;
+  Color _verdictColor = Color(0xFF556B2F);
   String _reasoning = '';
   List<String> _sources = [];
 
@@ -104,8 +104,8 @@ class _ShazamBubbleState extends State<ShazamBubble>
               ? 'Likely True'
               : (score >= 40 ? 'Uncertain' : 'Likely False');
           _verdictColor = score >= 70
-              ? Colors.green
-              : (score >= 40 ? Colors.orange : Colors.red);
+              ? Color(0xFF556B2F)
+              : (score >= 40 ? Color(0xFFCD853F) : Color(0xFF8B0000));
           _reasoning =
               data['ai_reasoning']?.toString() ?? 'No details available.';
           _sources = List<String>.from(data['balanced_views'] ?? []);
@@ -122,8 +122,8 @@ class _ShazamBubbleState extends State<ShazamBubble>
         _hasResult = true;
         _score = 0;
         _verdict = 'Error';
-        _verdictColor = Colors.red;
-        _reasoning = 'Could not reach EchoGuard server.\n$e';
+        _verdictColor = Color(0xFF8B0000);
+        _reasoning = 'Could not reach Veritas server.\n$e';
         _sources = [];
       });
       FlutterOverlayWindow.resizeOverlay(WindowSize.matchParent, 380, false);
@@ -142,7 +142,7 @@ class _ShazamBubbleState extends State<ShazamBubble>
             margin: const EdgeInsets.all(12),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Color(0xFFD7C9B8),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
@@ -173,10 +173,10 @@ class _ShazamBubbleState extends State<ShazamBubble>
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
+                            color: Colors.black,
                             shape: BoxShape.circle),
                         child: const Icon(Icons.close,
-                            size: 18, color: Colors.grey),
+                            size: 18, color: Colors.black),
                       ),
                     ),
                   ],
@@ -199,7 +199,7 @@ class _ShazamBubbleState extends State<ShazamBubble>
                       style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: Colors.grey)),
+                          color: Colors.black)),
                   const SizedBox(height: 4),
                   ..._sources.take(2).map((s) => Padding(
                         padding: const EdgeInsets.only(bottom: 2),
@@ -231,11 +231,11 @@ class _ShazamBubbleState extends State<ShazamBubble>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Color(0xFFD7C9B8),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                    color: const Color(0xFF1D468B).withOpacity(0.3),
+                    color: const Color(0xFF4A342A).withOpacity(0.3),
                     blurRadius: 15,
                     spreadRadius: 2),
               ],
@@ -246,19 +246,18 @@ class _ShazamBubbleState extends State<ShazamBubble>
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.shield,
-                        color: Color(0xFF1D468B), size: 20),
+                    Image.asset('assets/logo.png', width: 20, height: 20),
                     const SizedBox(width: 6),
-                    const Text('EchoGuard',
+                    const Text('Veritas',
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF1D468B))),
+                            color: Color(0xFF4A342A))),
                     const SizedBox(width: 10),
                     GestureDetector(
                       onTap: _collapse,
                       child: const Icon(Icons.close,
-                          size: 16, color: Colors.grey),
+                          size: 16, color: Colors.black),
                     ),
                   ],
                 ),
@@ -270,7 +269,7 @@ class _ShazamBubbleState extends State<ShazamBubble>
                         horizontal: 20, vertical: 8),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF1D468B), Color(0xFF2196F3)],
+                        colors: [Color(0xFF4A342A), Color(0xFFB2967D)],
                       ),
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -278,11 +277,11 @@ class _ShazamBubbleState extends State<ShazamBubble>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.saved_search,
-                            color: Colors.white, size: 18),
+                            color: Color(0xFFD7C9B8), size: 18),
                         SizedBox(width: 4),
                         Text('Analyse',
                             style: TextStyle(
-                                color: Colors.white,
+                                color: Color(0xFFD7C9B8),
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold)),
                       ],
@@ -314,33 +313,33 @@ class _ShazamBubbleState extends State<ShazamBubble>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF1D468B), Color(0xFF42A5F5)],
+                      colors: [Color(0xFF4A342A), Color(0xFFB2967D)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF1D468B).withOpacity(0.5),
+                        color: const Color(0xFF4A342A).withOpacity(0.5),
                         blurRadius: 15,
                         spreadRadius: 3,
                       ),
                     ],
-                    border: Border.all(color: Colors.white, width: 3),
+                    border: Border.all(color: Color(0xFFD7C9B8), width: 3),
                   ),
                   child: _analyzing
                       ? const Padding(
                           padding: EdgeInsets.all(18),
                           child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 3),
+                              color: Color(0xFF4A342A), strokeWidth: 3),
                         )
                       : const Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.shield,
-                                color: Colors.white, size: 28),
+                            Image.asset('assets/logo.png', width: 28, height: 28),
+                            SizedBox(height: 2),
                             Text('SCAN',
                                 style: TextStyle(
-                                    color: Colors.white,
+                                    color: Color(0xFF4A342A),
                                     fontSize: 9,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 1)),

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/feed_models.dart';
 
@@ -45,6 +46,8 @@ class HistoryItem {
 }
 
 class StorageService {
+  static final ValueNotifier<int> historyNotifier = ValueNotifier(0);
+
   static Future<List<HistoryItem>> getHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getString('eg_history') ?? '[]';
@@ -89,16 +92,18 @@ class StorageService {
       'eg_history',
       jsonEncode(history.map((e) => e.toJson()).toList()),
     );
+    historyNotifier.value++;
   }
 
   static Future<void> clearHistory() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('eg_history');
+    historyNotifier.value++;
   }
 
   static Future<String> getUsername() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('eg_username') ?? '@EchoGuard_User';
+    return prefs.getString('eg_username') ?? '@Veritas_User';
   }
 
   static Future<void> setUsername(String name) async {
@@ -160,9 +165,61 @@ class StorageService {
         content: oldBlog.content,
         analysis: oldBlog.analysis,
         comments: newComments,
+        votesTrue: oldBlog.votesTrue,
+        votesFalse: oldBlog.votesFalse,
+        votesMisleading: oldBlog.votesMisleading,
+        userVote: oldBlog.userVote,
       );
       
       _cachedBlogs[index] = updatedBlog;
+      await _persistBlogs();
+    }
+  }
+
+  /// Vote on a blog post. `voteType` is 'true', 'false', or 'misleading'.
+  /// If the user already voted the same, it removes the vote (toggle).
+  static Future<void> voteBlog(String blogId, String voteType) async {
+    final index = _cachedBlogs.indexWhere((b) => b.id == blogId);
+    if (index != -1) {
+      final blog = _cachedBlogs[index];
+
+      // If same vote, toggle off
+      String? newVote;
+      int trueD = 0, falseD = 0, misleadD = 0;
+
+      if (blog.userVote == voteType) {
+        // Un-vote
+        newVote = null;
+        if (voteType == 'true') trueD = -1;
+        if (voteType == 'false') falseD = -1;
+        if (voteType == 'misleading') misleadD = -1;
+      } else {
+        // Change vote
+        newVote = voteType;
+        // Remove old vote
+        if (blog.userVote == 'true') trueD = -1;
+        if (blog.userVote == 'false') falseD = -1;
+        if (blog.userVote == 'misleading') misleadD = -1;
+        // Add new vote
+        if (voteType == 'true') trueD += 1;
+        if (voteType == 'false') falseD += 1;
+        if (voteType == 'misleading') misleadD += 1;
+      }
+
+      final updated = BlogPost(
+        id: blog.id,
+        timestamp: blog.timestamp,
+        author: blog.author,
+        content: blog.content,
+        analysis: blog.analysis,
+        comments: blog.comments,
+        votesTrue: blog.votesTrue + trueD,
+        votesFalse: blog.votesFalse + falseD,
+        votesMisleading: blog.votesMisleading + misleadD,
+        userVote: newVote,
+      );
+
+      _cachedBlogs[index] = updated;
       await _persistBlogs();
     }
   }

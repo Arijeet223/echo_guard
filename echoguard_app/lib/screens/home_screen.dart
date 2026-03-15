@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'analysis_screen.dart';
 import 'create_blog_screen.dart';
 import 'blog_detail_screen.dart';
+import 'notification_screen.dart';
 import '../models/feed_models.dart';
 import '../services/api_service.dart';
 import '../services/feed_service.dart';
@@ -33,115 +35,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _showNotifications(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        final theme = Theme.of(context);
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.6,
-          decoration: BoxDecoration(
-            color: theme.scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: BoxDecoration(border: Border(bottom: BorderSide(color: theme.dividerColor))),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Notifications', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
-                    TextButton(
-                      onPressed: () {
-                        setState(() => _hasUnreadNotifications = false);
-                        Navigator.pop(context);
-                      },
-                      child: Text('Mark all as read', style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _notificationItem(
-                      title: 'High Risk Alert',
-                      body: 'A recent claim you scanned has been flagged as severe misinformation.',
-                      time: '2 mins ago',
-                      icon: Icons.warning_amber_rounded,
-                      color: Colors.red,
-                      isUnread: _hasUnreadNotifications,
-                    ),
-                    _notificationItem(
-                      title: 'Weekly Summary Ready',
-                      body: 'You scanned 14 articles this week. 8 were verified as truthful.',
-                      time: '1 day ago',
-                      icon: Icons.analytics_outlined,
-                      color: theme.colorScheme.primary,
-                      isUnread: false,
-                    ),
-                    _notificationItem(
-                      title: 'System Update',
-                      body: 'EchoGuard AI models have been updated successfully.',
-                      time: '3 days ago',
-                      icon: Icons.system_update_alt,
-                      color: Colors.grey.shade600,
-                      isUnread: false,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _notificationItem({required String title, required String body, required String time, required IconData icon, required Color color, required bool isUnread}) {
-    final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isUnread ? color.withOpacity(0.05) : theme.cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isUnread ? color.withOpacity(0.3) : theme.dividerColor),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.textTheme.bodyLarge?.color)),
-                    Text(time, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(body, style: TextStyle(fontSize: 12, color: theme.textTheme.bodyMedium?.color, height: 1.4)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _analyze() {
     final text = _controller.text.trim();
@@ -173,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(height: 16),
             Material(
               color: Colors.transparent,
-              child: Text('Extracting text from image...', style: TextStyle(color: Colors.white)),
+              child: Text('Extracting text from image...', style: TextStyle(color: Color(0xFFD7C9B8))),
             ),
           ],
         ),
@@ -214,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (ctx) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.link, color: Color(0xFF1D468B)),
+            Icon(Icons.link, color: Color(0xFF4A342A)),
             SizedBox(width: 8),
             Text('Analyze URL'),
           ],
@@ -223,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
           controller: urlController,
           decoration: InputDecoration(
             hintText: 'https://example.com/article',
-            hintStyle: TextStyle(color: Colors.grey.shade400),
+            hintStyle: TextStyle(color: Colors.black),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             prefixIcon: const Icon(Icons.language),
           ),
@@ -247,8 +140,8 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1D468B),
-              foregroundColor: Colors.white,
+              backgroundColor: const Color(0xFF4A342A),
+              foregroundColor: Color(0xFFD7C9B8),
             ),
             child: const Text('Analyze'),
           ),
@@ -271,19 +164,25 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Container(
               width: 32, height: 32,
-              decoration: BoxDecoration(color: const Color(0xFF1D468B), borderRadius: BorderRadius.circular(6)),
-              child: const Icon(Icons.security, color: Colors.white, size: 20),
+              decoration: BoxDecoration(color: const Color(0xFF4A342A), borderRadius: BorderRadius.circular(6)),
+              child: const Icon(Icons.security, color: Color(0xFFD7C9B8), size: 20),
             ),
             const SizedBox(width: 8),
-            Text('EchoGuard', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.appBarTheme.foregroundColor)),
+            Text('Veritas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.appBarTheme.foregroundColor)),
           ],
         ),
         actions: [
           Stack(
             children: [
-              IconButton(icon: Icon(Icons.notifications_outlined, color: Colors.grey.shade600), onPressed: () => _showNotifications(context)),
+              IconButton(
+                icon: Icon(Icons.notifications_outlined, color: Colors.black), 
+                onPressed: () {
+                  setState(() => _hasUnreadNotifications = false);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen()));
+                },
+              ),
               if (_hasUnreadNotifications)
-                Positioned(top: 12, right: 12, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle))),
+                Positioned(top: 12, right: 12, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF8B0000), shape: BoxShape.circle))),
             ],
           ),
         ],
@@ -298,8 +197,8 @@ class _HomeScreenState extends State<HomeScreen> {
             _refreshFeed();
           }
         },
-        backgroundColor: const Color(0xFF1D468B),
-        foregroundColor: Colors.white,
+        backgroundColor: const Color(0xFF4A342A),
+        foregroundColor: Color(0xFFD7C9B8),
         icon: const Icon(Icons.edit),
         label: const Text('New Post'),
       ),
@@ -329,7 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Icon(Icons.analytics_outlined, color: const Color(0xFF0D9488), size: 18),
                           const SizedBox(width: 8),
-                          Text('INPUT ANALYZER', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1, color: Colors.grey.shade500)),
+                          Text('INPUT ANALYZER', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1, color: Colors.black)),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -338,12 +237,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         maxLines: 3,
                         decoration: InputDecoration(
                           hintText: 'Paste text, link, or claim to analyze...',
-                          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                          hintStyle: TextStyle(color: Colors.black, fontSize: 14),
                           filled: true,
                           fillColor: theme.scaffoldBackgroundColor,
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: theme.dividerColor)),
                           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: theme.dividerColor)),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF1D468B))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF4A342A))),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -368,8 +267,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             icon: const Text('Analyze', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                             label: const Icon(Icons.send, size: 16),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1D468B),
-                              foregroundColor: Colors.white,
+                              backgroundColor: const Color(0xFF4A342A),
+                              foregroundColor: Color(0xFFD7C9B8),
                               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
@@ -453,7 +352,7 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: theme.dividerColor),
         ),
-        child: Icon(icon, size: 16, color: Colors.grey.shade600),
+        child: Icon(icon, size: 16, color: Colors.black),
       );
     });
   }
@@ -490,7 +389,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(width: 8),
                     Text(news.source, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blue)),
                     const Spacer(),
-                    Text('Live News', style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                    GestureDetector(
+                      onTap: () {
+                        Share.share('📰 ${news.title}\nSource: ${news.source}\n🔗 ${news.url}\n\n— Shared via Veritas');
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Icon(Icons.share_outlined, size: 16, color: Colors.blue.shade300),
+                      ),
+                    ),
+                    Text('Live News', style: TextStyle(fontSize: 10, color: Colors.black)),
                   ],
                 ),
               ),
@@ -527,7 +435,7 @@ class _HomeScreenState extends State<HomeScreen> {
     bool isFalse = score < 40;
     bool isTrue = score >= 70;
 
-    Color badgeColor = isTrue ? const Color(0xFF0D9488) : isMisleading ? Colors.amber.shade700 : Colors.red;
+    Color badgeColor = isTrue ? const Color(0xFF0D9488) : isMisleading ? Color(0xFFCD853F) : Color(0xFF8B0000);
     String badgeText = isTrue ? 'Verified' : isMisleading ? 'Misleading' : 'False';
     IconData icon = isTrue ? Icons.check_circle : isMisleading ? Icons.warning_rounded : Icons.error;
 
@@ -562,7 +470,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       top: 12, left: 16,
                       child: Row(
                         children: [
-                          CircleAvatar(radius: 12, backgroundColor: Colors.white, child: Icon(Icons.person, size: 14, color: Colors.grey.shade600)),
+                          CircleAvatar(radius: 12, backgroundColor: Color(0xFFD7C9B8), child: Icon(Icons.person, size: 14, color: Colors.black)),
                           const SizedBox(width: 8),
                           Text(blog.author, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                         ],
@@ -573,7 +481,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(color: badgeColor, borderRadius: BorderRadius.circular(4)),
-                        child: Text(badgeText, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        child: Text(badgeText, style: const TextStyle(color: Color(0xFFD7C9B8), fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -598,7 +506,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('ECHO SCORE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: -0.3, color: Colors.grey.shade400)),
+                              Text('ECHO SCORE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: -0.3, color: Colors.black)),
                               Text('$score/100', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: badgeColor)),
                             ],
                           ),
@@ -606,9 +514,17 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.chat_bubble_outline, size: 16, color: Colors.grey.shade400),
+                                  Icon(Icons.how_to_vote_outlined, size: 16, color: Colors.black),
                                   const SizedBox(width: 4),
-                                  Text('${blog.comments.length}', style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.bold)),
+                                  Text('${blog.totalVotes}', style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                              const SizedBox(width: 12),
+                              Row(
+                                children: [
+                                  Icon(Icons.chat_bubble_outline, size: 16, color: Colors.black),
+                                  const SizedBox(width: 4),
+                                  Text('${blog.comments.length}', style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
                                 ],
                               ),
                               const SizedBox(width: 16),

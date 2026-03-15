@@ -12,7 +12,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
-        android:label="EchoGuard"
+        android:label="Veritas"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
@@ -40,14 +40,14 @@
             android:name="flutterEmbedding"
             android:value="2"/>
 
-        <!-- ── EchoGuard Native Overlay Service (ForegroundService) ───── -->
+        <!-- ── Veritas Native Overlay Service (ForegroundService) ───── -->
         <service
             android:name=".EchoGuardOverlayService"
             android:exported="false"
             android:foregroundServiceType="specialUse"
             android:stopWithTask="false"/>
 
-        <!-- ── EchoGuard Accessibility Service ────────────────────────── -->
+        <!-- ── Veritas Accessibility Service ────────────────────────── -->
         <service
             android:name=".EchoGuardAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"

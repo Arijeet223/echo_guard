@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/feed_models.dart';
 import '../services/storage_service.dart';
 
@@ -13,34 +14,95 @@ class BlogDetailScreen extends StatefulWidget {
 
 class _BlogDetailScreenState extends State<BlogDetailScreen> {
   final TextEditingController _commentController = TextEditingController();
+  late BlogPost? _liveBlog;
+
+  @override
+  void initState() {
+    super.initState();
+    _liveBlog = widget.item is BlogPost ? widget.item as BlogPost : null;
+  }
 
   Future<void> _postComment() async {
     final text = _commentController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _liveBlog == null) return;
 
-    if (widget.item is BlogPost) {
-      final blog = widget.item as BlogPost;
-      final author = await StorageService.getUsername();
-      
-      final comment = Comment(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        author: author,
-        text: text,
-        timestamp: DateTime.now(),
-      );
+    final author = await StorageService.getUsername();
+    final comment = Comment(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      author: author,
+      text: text,
+      timestamp: DateTime.now(),
+    );
 
-      await StorageService.addCommentToBlog(blog.id, comment);
-      await StorageService.loadBlogs();
+    await StorageService.addCommentToBlog(_liveBlog!.id, comment);
+    await StorageService.loadBlogs();
 
+    setState(() {
+      _commentController.clear();
+      _liveBlog!.comments.add(comment);
+    });
+    FocusScope.of(context).unfocus();
+  }
+
+  Future<void> _vote(String voteType) async {
+    if (_liveBlog == null) return;
+    await StorageService.voteBlog(_liveBlog!.id, voteType);
+
+    // Refresh from cached data
+    await StorageService.loadBlogs();
+    final updated = StorageService.getBlogs().where((b) => b.id == _liveBlog!.id).firstOrNull;
+    if (updated != null && mounted) {
+      setState(() => _liveBlog = updated);
+    } else if (mounted) {
+      // For dummy blogs (not persisted), toggle locally
       setState(() {
-        _commentController.clear();
-        // Since the blog instances are immutable clones, we need to refresh the reference
-        // Actually for simplicity we can just mutate the array in UI, or trigger a rebuild via FutureBuilder
-        blog.comments.add(comment);
+        final old = _liveBlog!;
+        final sameVote = old.userVote == voteType;
+        int td = 0, fd = 0, md = 0;
+        if (sameVote) {
+          if (voteType == 'true') td = -1;
+          if (voteType == 'false') fd = -1;
+          if (voteType == 'misleading') md = -1;
+        } else {
+          if (old.userVote == 'true') td = -1;
+          if (old.userVote == 'false') fd = -1;
+          if (old.userVote == 'misleading') md = -1;
+          if (voteType == 'true') td += 1;
+          if (voteType == 'false') fd += 1;
+          if (voteType == 'misleading') md += 1;
+        }
+        _liveBlog = BlogPost(
+          id: old.id,
+          timestamp: old.timestamp,
+          author: old.author,
+          content: old.content,
+          analysis: old.analysis,
+          comments: old.comments,
+          votesTrue: old.votesTrue + td,
+          votesFalse: old.votesFalse + fd,
+          votesMisleading: old.votesMisleading + md,
+          userVote: sameVote ? null : voteType,
+        );
       });
-      // dismiss keyboard
-      FocusScope.of(context).unfocus();
     }
+  }
+
+  void _share() {
+    String shareText;
+    if (widget.item is NewsItem) {
+      final news = widget.item as NewsItem;
+      shareText = '📰 ${news.title}\nSource: ${news.source}\n🔗 ${news.url}\n\n— Shared via Veritas';
+    } else {
+      final blog = _liveBlog!;
+      final scoreEmoji = blog.analysis.credibility >= 70 ? '✅' : blog.analysis.credibility >= 40 ? '⚠️' : '❌';
+      shareText = '🔍 Veritas Community Post\n\n'
+          '"${blog.content}"\n\n'
+          '$scoreEmoji Echo Score: ${blog.analysis.credibility.toInt()}/100\n'
+          '📊 Community: ${blog.votesTrue} True · ${blog.votesFalse} False · ${blog.votesMisleading} Misleading\n\n'
+          '${blog.analysis.aiReasoning}\n\n'
+          '— Verified by Veritas AI';
+    }
+    Share.share(shareText);
   }
 
   @override
@@ -48,7 +110,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
     if (widget.item is NewsItem) {
       return _buildNewsDetail(widget.item as NewsItem);
     } else {
-      return _buildBlogDetail(widget.item as BlogPost);
+      return _buildBlogDetail(_liveBlog!);
     }
   }
 
@@ -58,6 +120,9 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
       appBar: AppBar(
         title: const Text('News Article'),
         backgroundColor: theme.scaffoldBackgroundColor,
+        actions: [
+          IconButton(icon: const Icon(Icons.share_outlined), onPressed: _share),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -67,7 +132,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Colors.grey.shade200,
+                  backgroundColor: Colors.black,
                   child: const Icon(Icons.public, color: Colors.black54),
                 ),
                 const SizedBox(width: 12),
@@ -77,7 +142,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                     Text(news.source, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     Text(
                       _formatDate(news.timestamp),
-                      style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                      style: TextStyle(color: Colors.black, fontSize: 12),
                     ),
                   ],
                 ),
@@ -89,11 +154,10 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, height: 1.3),
             ),
             const SizedBox(height: 24),
-            // Fake warning for external news (since we aren't analyzing RSS yet directly on ingestion)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF9E6), // Light yellow
+                color: const Color(0xFFFFF9E6),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFFFECCC)),
               ),
@@ -109,8 +173,8 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'This is an external news headline. To check its credibility, copy the link and paste it into the EchoGuard Input Analyzer.',
-                    style: TextStyle(color: Colors.orange.shade900, fontSize: 13, height: 1.4),
+                    'This is an external news headline. To check its credibility, copy the link and paste it into the Veritas Input Analyzer.',
+                    style: TextStyle(color: Color(0xFFCD853F), fontSize: 13, height: 1.4),
                   ),
                 ],
               ),
@@ -126,16 +190,19 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
     bool isFalse = blog.analysis.credibility < 40;
     bool isTrue = blog.analysis.credibility >= 70;
 
-    Color badgeColor = isTrue ? const Color(0xFF0D9488) : isMisleading ? Colors.amber.shade700 : Colors.red;
+    Color badgeColor = isTrue ? const Color(0xFF0D9488) : isMisleading ? Color(0xFFCD853F) : Color(0xFF8B0000);
     String badgeText = isTrue ? 'VERIFIED CONTEXT' : isMisleading ? 'MISLEADING CONTEXT' : 'FALSE CONTEXT';
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Color(0xFFD7C9B8),
       appBar: AppBar(
         title: const Text('Community Post'),
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFFD7C9B8),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
+        actions: [
+          IconButton(icon: const Icon(Icons.share_outlined), onPressed: _share),
+        ],
       ),
       body: Column(
         children: [
@@ -152,8 +219,8 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                         children: [
                           CircleAvatar(
                             radius: 20,
-                            backgroundColor: Colors.grey.shade200,
-                            child: const Icon(Icons.person, color: Colors.grey),
+                            backgroundColor: Colors.black,
+                            child: const Icon(Icons.person, color: Colors.black),
                           ),
                           const SizedBox(width: 12),
                           Column(
@@ -162,29 +229,23 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                               Text(blog.author, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                               Text(
                                 _formatDate(blog.timestamp),
-                                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                                style: TextStyle(color: Colors.black, fontSize: 12),
                               ),
                             ],
                           ),
                         ],
                       ),
-                      Row(
-                        children: [
-                          Icon(Icons.share, color: Colors.grey.shade400, size: 20),
-                          const SizedBox(width: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: badgeColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              badgeText,
-                              style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      )
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: badgeColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          badgeText,
+                          style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -199,7 +260,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF9E6), // Reference yellowish
+                      color: const Color(0xFFFFF9E6),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: const Color(0xFFFFECCC)),
                     ),
@@ -222,23 +283,92 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                         const SizedBox(height: 12),
                         Text(
                           blog.analysis.aiReasoning.isNotEmpty ? blog.analysis.aiReasoning : 'Credibility score: ${blog.analysis.credibility.toInt()}/100. Bias: ${blog.analysis.bias.leaning}.',
-                          style: TextStyle(color: Colors.grey.shade800, fontSize: 14, height: 1.5),
+                          style: TextStyle(color: Colors.black, fontSize: 14, height: 1.5),
                         ),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 20),
+
+                  // ── Voting Section ──
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.black),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Community Verdict', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black)),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            _voteChip(
+                              icon: Icons.check_circle_rounded,
+                              label: 'True',
+                              count: blog.votesTrue,
+                              color: const Color(0xFF556B2F),
+                              isSelected: blog.userVote == 'true',
+                              onTap: () => _vote('true'),
+                            ),
+                            const SizedBox(width: 10),
+                            _voteChip(
+                              icon: Icons.cancel_rounded,
+                              label: 'False',
+                              count: blog.votesFalse,
+                              color: Color(0xFF8B0000),
+                              isSelected: blog.userVote == 'false',
+                              onTap: () => _vote('false'),
+                            ),
+                            const SizedBox(width: 10),
+                            _voteChip(
+                              icon: Icons.warning_rounded,
+                              label: 'Misleading',
+                              count: blog.votesMisleading,
+                              color: Color(0xFFCD853F),
+                              isSelected: blog.userVote == 'misleading',
+                              onTap: () => _vote('misleading'),
+                            ),
+                          ],
+                        ),
+                        if (blog.totalVotes > 0) ...[
+                          const SizedBox(height: 10),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: SizedBox(
+                              height: 6,
+                              child: Row(
+                                children: [
+                                  if (blog.votesTrue > 0)
+                                    Expanded(flex: blog.votesTrue, child: Container(color: const Color(0xFF556B2F))),
+                                  if (blog.votesFalse > 0)
+                                    Expanded(flex: blog.votesFalse, child: Container(color: Color(0xFF8B0000))),
+                                  if (blog.votesMisleading > 0)
+                                    Expanded(flex: blog.votesMisleading, child: Container(color: Color(0xFFCD853F))),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
                   const Divider(),
                   const SizedBox(height: 8),
-                  const Text('Comments', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text('Comments (${blog.comments.length})', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
 
                   if (blog.comments.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 24),
                       child: Center(
-                        child: Text('No comments yet. Be the first!', style: TextStyle(color: Colors.grey.shade500)),
+                        child: Text('No comments yet. Be the first!', style: TextStyle(color: Colors.black)),
                       ),
                     ),
                     
@@ -261,11 +391,11 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                                 children: [
                                   Text(c.author, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                                   const SizedBox(width: 8),
-                                  Text(_formatDate(c.timestamp), style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+                                  Text(_formatDate(c.timestamp), style: TextStyle(color: Colors.black, fontSize: 11)),
                                 ],
                               ),
                               const SizedBox(height: 4),
-                              Text(c.text, style: TextStyle(color: Colors.grey.shade800, fontSize: 14)),
+                              Text(c.text, style: TextStyle(color: Colors.black, fontSize: 14)),
                             ],
                           ),
                         ),
@@ -281,7 +411,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Color(0xFFD7C9B8),
               boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), offset: const Offset(0, -2), blurRadius: 4)],
             ),
             child: Row(
@@ -291,9 +421,9 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                     controller: _commentController,
                     decoration: InputDecoration(
                       hintText: 'Add a comment...',
-                      hintStyle: TextStyle(color: Colors.grey.shade500),
+                      hintStyle: TextStyle(color: Colors.black),
                       filled: true,
-                      fillColor: Colors.grey.shade100,
+                      fillColor: Colors.black,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
                     ),
@@ -307,16 +437,47 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF1D468B),
+                      color: Color(0xFF4A342A),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.send, color: Colors.white, size: 20),
+                    child: const Icon(Icons.send, color: Color(0xFFD7C9B8), size: 20),
                   ),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _voteChip({
+    required IconData icon,
+    required String label,
+    required int count,
+    required Color color,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withOpacity(0.15) : Color(0xFFD7C9B8),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: isSelected ? color : Colors.black, width: isSelected ? 2 : 1),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(height: 4),
+              Text('$count', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isSelected ? color : Colors.black)),
+              Text(label, style: TextStyle(fontSize: 10, color: isSelected ? color : Colors.black)),
+            ],
+          ),
+        ),
       ),
     );
   }

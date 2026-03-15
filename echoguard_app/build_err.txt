@@ -1,0 +1,10 @@
+'crumb' is not recognized as an internal or external command,
+operable program or batch file.
+'crumb' is not recognized as an internal or external command,
+operable program or batch file.
+'crumb' is not recognized as an internal or external command,
+operable program or batch file.
+Running Gradle task 'assembleRelease'...                        
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 8760 bytes (99.5% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Running Gradle task 'assembleRelease'...                          111.6s
+√ Built build\app\outputs\flutter-apk\app-release.apk (76.6MB)

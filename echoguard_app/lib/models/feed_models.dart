@@ -29,6 +29,10 @@ class BlogPost extends FeedItem {
   final String content;
   final AnalysisResult analysis;
   final List<Comment> comments;
+  int votesTrue;
+  int votesFalse;
+  int votesMisleading;
+  String? userVote; // 'true', 'false', 'misleading', or null
 
   BlogPost({
     required String id,
@@ -37,7 +41,13 @@ class BlogPost extends FeedItem {
     required this.content,
     required this.analysis,
     this.comments = const [],
+    this.votesTrue = 0,
+    this.votesFalse = 0,
+    this.votesMisleading = 0,
+    this.userVote,
   }) : super(id: id, timestamp: timestamp);
+
+  int get totalVotes => votesTrue + votesFalse + votesMisleading;
 
   Map<String, dynamic> toJson() {
     return {
@@ -45,33 +55,12 @@ class BlogPost extends FeedItem {
       'timestamp': timestamp.toIso8601String(),
       'author': author,
       'content': content,
-      'analysis': {
-        'credibility': analysis.credibility,
-        'fake_probability': analysis.fakeProbability,
-        'manipulation': {
-          'level': analysis.manipulation.level,
-          'emotion': analysis.manipulation.emotion,
-          'intensity': analysis.manipulation.intensity,
-          'keywords': analysis.manipulation.keywords,
-        },
-        'bias': {
-          'leaning': analysis.bias.leaning,
-          'confidence': analysis.bias.confidence,
-          'propaganda_flag': analysis.bias.propagandaFlag,
-        },
-        'source_reliability': {
-          'level': analysis.sourceReliability.level,
-          'score': analysis.sourceReliability.score,
-          'domain': analysis.sourceReliability.domain,
-        },
-        'clickbait': {
-          'is_clickbait': analysis.clickbait.isClickbait,
-          'probability': analysis.clickbait.probability,
-        },
-        'balanced_views': analysis.balancedViews,
-        'ai_reasoning': analysis.aiReasoning,
-      },
+      'analysis': analysis.toJson(),
       'comments': comments.map((c) => c.toJson()).toList(),
+      'votesTrue': votesTrue,
+      'votesFalse': votesFalse,
+      'votesMisleading': votesMisleading,
+      'userVote': userVote,
     };
   }
 
@@ -87,6 +76,10 @@ class BlogPost extends FeedItem {
               ?.map((c) => Comment.fromJson(c as Map<String, dynamic>))
               .toList() ??
           [],
+      votesTrue: json['votesTrue'] ?? 0,
+      votesFalse: json['votesFalse'] ?? 0,
+      votesMisleading: json['votesMisleading'] ?? 0,
+      userVote: json['userVote'] as String?,
     );
   }
 }

@@ -1,4 +1,4 @@
-/// Central configuration for the EchoGuard backend API.
+/// Central configuration for the Veritas backend API.
 /// 
 /// The ngrok public URL is set here after starting the server.
 /// Both the main app and the overlay read from this single source.

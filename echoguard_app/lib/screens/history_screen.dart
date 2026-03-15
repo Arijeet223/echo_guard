@@ -20,14 +20,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
   void initState() {
     super.initState();
     _load();
+    StorageService.historyNotifier.addListener(_load);
+  }
+
+  @override
+  void dispose() {
+    StorageService.historyNotifier.removeListener(_load);
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
     final items = await StorageService.getHistory();
-    setState(() { _all = items; _filtered = items; });
+    if (!mounted) return;
+    setState(() { 
+      _all = items; 
+      _filtered = items.where((i) => i.text.toLowerCase().contains(_searchCtrl.text.toLowerCase()) || i.verdict.toLowerCase().contains(_searchCtrl.text.toLowerCase())).toList();
+    });
   }
 
   void _filter(String query) {
+    if (!mounted) return;
     setState(() {
       _filtered = _all.where((i) => i.text.toLowerCase().contains(query.toLowerCase()) || i.verdict.toLowerCase().contains(query.toLowerCase())).toList();
     });
@@ -48,9 +61,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Color _verdictColor(String v) {
-    if (v == 'Verified') return const Color(0xFF10B981);
-    if (v == 'Misleading') return Colors.amber.shade700;
-    return Colors.red;
+    if (v == 'Verified') return const Color(0xFF4A5D23); // Earthy Olive
+    if (v == 'Misleading') return const Color(0xFFC19A6B); // Earthy Mustard
+    return const Color(0xFF8B3A3A); // Earthy Rust
   }
 
   @override
@@ -65,17 +78,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
         backgroundColor: theme.appBarTheme.backgroundColor,
         surfaceTintColor: Colors.transparent,
         title: Row(children: [
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(color: const Color(0xFF1D468B), borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.history, color: Colors.white, size: 20),
-          ),
+          const Icon(Icons.access_time, size: 28),
           const SizedBox(width: 10),
           Text('History', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.appBarTheme.foregroundColor)),
         ]),
         actions: [
           IconButton(icon: const Icon(Icons.search), onPressed: () => setState(() => _showSearch = !_showSearch)),
-          IconButton(icon: const Icon(Icons.filter_list), onPressed: () {}),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.filter_list, color: Color(0xFF4A342A)),
+            onSelected: (cat) {
+              setState(() {
+                if (cat == 'All') {
+                  _searchCtrl.clear();
+                  _filtered = _all;
+                } else {
+                  _searchCtrl.text = cat;
+                  _filter(cat);
+                  _showSearch = true;
+                }
+              });
+            },
+            itemBuilder: (context) => [
+              'All', 'Political', 'Geopolitical', 'Sports', 'Tech', 'Health', 'Finance', 'Crypto'
+            ].map((c) => PopupMenuItem(value: c, child: Text(c))).toList(),
+          ),
         ],
       ),
       body: Column(
@@ -121,7 +147,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _sectionTitle(String t) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Text(t, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.grey.shade400)),
+      child: Text(t, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.black)),
     );
   }
 
@@ -165,7 +191,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           child: Text(item.verdict, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
                         ),
                         const SizedBox(width: 8),
-                        Text(_timeAgo(item), style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+                        Text(_timeAgo(item), style: TextStyle(fontSize: 12, color: Colors.black)),
                       ]),
                       const SizedBox(height: 8),
                       Text(item.text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, height: 1.3), maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -177,17 +203,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text('${item.score.toStringAsFixed(0)}', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-                    Text('/100', style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
-                    Text('ECHO SCORE', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.5, color: Colors.grey.shade400)),
+                    Text('/100', style: TextStyle(fontSize: 10, color: Colors.black)),
+                    Text('ECHO SCORE', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.5, color: Colors.black)),
                   ],
                 ),
               ],
             ),
             Divider(height: 20, color: theme.dividerColor),
             Row(children: [
-              Icon(Icons.link, size: 14, color: Colors.grey.shade400),
+              Icon(Icons.link, size: 14, color: Colors.black),
               const SizedBox(width: 6),
-              Text('Source: User Input Analyzer', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+              Text('Source: User Input Analyzer', style: TextStyle(fontSize: 11, color: Colors.black)),
             ]),
           ],
         ),
@@ -203,13 +229,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children: [
           Container(
             width: 64, height: 64,
-            decoration: BoxDecoration(color: Colors.grey.shade100, shape: BoxShape.circle),
-            child: Icon(Icons.history_toggle_off, size: 32, color: Colors.grey.shade400),
+            decoration: BoxDecoration(color: Colors.black, shape: BoxShape.circle),
+            child: Icon(Icons.history_toggle_off, size: 32, color: Colors.black),
           ),
           const SizedBox(height: 16),
           const Text('No History Yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Text('Analyses you perform will be saved here.', style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+          Text('Analyses you perform will be saved here.', style: TextStyle(fontSize: 14, color: Colors.black)),
         ],
       ),
     );

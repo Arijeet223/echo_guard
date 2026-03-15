@@ -86,7 +86,7 @@ class _ScanScreenState extends State<ScanScreen> {
         );
 
         // Save to history immediately (can be viewed later inside the app)
-        StorageService.addToHistory(displayText, result.credibility);
+        StorageService.addToHistory(displayText, result.credibility, resultJson: result.toJson());
       } catch (e) {
         if (!mounted) return;
         
@@ -96,7 +96,7 @@ class _ScanScreenState extends State<ScanScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Scan failed: $e'),
-            backgroundColor: Colors.red.shade700,
+            backgroundColor: Color(0xFF8B0000),
           ),
         );
       }
@@ -124,7 +124,7 @@ class _ScanScreenState extends State<ScanScreen> {
                 ? '⚠️ Please grant overlay permission, then try again.'
                 : '✅ Guardian Bubble launched! Check your screen.'),
             backgroundColor: result == 'permission_required'
-                ? Colors.orange
+                ? Color(0xFFCD853F)
                 : const Color(0xFF0D9488),
           ),
         );
@@ -177,7 +177,7 @@ class _ScanScreenState extends State<ScanScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.mobile_off, size: 80, color: Colors.grey.shade400),
+                Icon(Icons.mobile_off, size: 80, color: Colors.black),
                 const SizedBox(height: 24),
                 Text('Android Exclusive Feature',
                     style: TextStyle(
@@ -192,7 +192,7 @@ class _ScanScreenState extends State<ScanScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey.shade600,
+                      color: Colors.black,
                       height: 1.5),
                 ),
               ],
@@ -298,14 +298,14 @@ class _ScanScreenState extends State<ScanScreen> {
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade600)),
+                    color: Colors.black)),
             const SizedBox(height: 16),
 
             _permissionCard(
               context,
               title: 'Floating Bubble',
               description:
-                  'Allows EchoGuard to draw a hovering button over other apps.',
+                  'Allows Veritas to draw a hovering button over other apps.',
               icon: Icons.bubble_chart,
               isGranted: _hasOverlayPermission,
               onTap: _requestOverlayPermission,
@@ -315,14 +315,14 @@ class _ScanScreenState extends State<ScanScreen> {
               context,
               title: 'Screen Reader (Accessibility)',
               description:
-                  'Settings → Accessibility → Installed services → Enable EchoGuard.',
+                  'Settings → Accessibility → Installed services → Enable Veritas.',
               icon: Icons.document_scanner,
               isGranted: _accessibilityEnabled,
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(
-                        '📱 Go to Settings → Accessibility → Installed Apps → EchoGuard → Turn ON'),
+                        '📱 Go to Settings → Accessibility → Installed Apps → Veritas → Turn ON'),
                     duration: Duration(seconds: 4),
                   ),
                 );
@@ -340,7 +340,7 @@ class _ScanScreenState extends State<ScanScreen> {
                 onPressed: _overlayActive ? _stopOverlay : _launchOverlay,
                 icon: Icon(
                   _overlayActive ? Icons.stop_circle : Icons.rocket_launch,
-                  color: Colors.white,
+                  color: Color(0xFFD7C9B8),
                 ),
                 label: Text(
                   _overlayActive
@@ -349,14 +349,14 @@ class _ScanScreenState extends State<ScanScreen> {
                   style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white),
+                      color: Color(0xFFD7C9B8)),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _overlayActive
-                      ? Colors.red.shade600
+                      ? Color(0xFF8B0000)
                       : (_hasOverlayPermission
                           ? theme.colorScheme.primary
-                          : Colors.grey.shade400),
+                          : Colors.black),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                   elevation: 4,
@@ -370,9 +370,9 @@ class _ScanScreenState extends State<ScanScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.amber.withOpacity(0.08),
+                color: Color(0xFFCD853F).withOpacity(0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                border: Border.all(color: Color(0xFFCD853F).withOpacity(0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -380,12 +380,12 @@ class _ScanScreenState extends State<ScanScreen> {
                   Row(
                     children: [
                       const Icon(Icons.info_outline,
-                          color: Colors.amber, size: 18),
+                          color: Color(0xFFCD853F), size: 18),
                       const SizedBox(width: 8),
                       Text('How to enable Accessibility',
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Colors.amber.shade800)),
+                              color: Color(0xFFCD853F))),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -393,11 +393,11 @@ class _ScanScreenState extends State<ScanScreen> {
                     '1. Open your phone Settings\n'
                     '2. Tap Accessibility\n'
                     '3. Tap Installed apps / Downloaded apps\n'
-                    '4. Find EchoGuard and toggle it ON\n'
+                    '4. Find Veritas and toggle it ON\n'
                     '5. Come back here and tap Launch',
                     style: TextStyle(
                         fontSize: 13,
-                        color: Colors.amber.shade900,
+                        color: Color(0xFFCD853F),
                         height: 1.6),
                   ),
                 ],
@@ -426,7 +426,7 @@ class _ScanScreenState extends State<ScanScreen> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
               color: isGranted
-                  ? Colors.green.withOpacity(0.5)
+                  ? Color(0xFF556B2F).withOpacity(0.5)
                   : theme.dividerColor,
               width: isGranted ? 2 : 1),
         ),
@@ -436,13 +436,13 @@ class _ScanScreenState extends State<ScanScreen> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isGranted
-                    ? Colors.green.withOpacity(0.1)
+                    ? Color(0xFF556B2F).withOpacity(0.1)
                     : theme.scaffoldBackgroundColor,
                 shape: BoxShape.circle,
               ),
               child: Icon(icon,
                   color:
-                      isGranted ? Colors.green : Colors.grey.shade500),
+                      isGranted ? Color(0xFF556B2F) : Colors.black),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -456,7 +456,7 @@ class _ScanScreenState extends State<ScanScreen> {
                   Text(description,
                       style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade500,
+                          color: Colors.black,
                           height: 1.3)),
                 ],
               ),
@@ -464,7 +464,7 @@ class _ScanScreenState extends State<ScanScreen> {
             const SizedBox(width: 8),
             Icon(
               isGranted ? Icons.check_circle : Icons.chevron_right,
-              color: isGranted ? Colors.green : Colors.grey.shade400,
+              color: isGranted ? Color(0xFF556B2F) : Colors.black,
               size: 28,
             ),
           ],

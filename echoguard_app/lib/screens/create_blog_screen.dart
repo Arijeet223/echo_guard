@@ -104,14 +104,14 @@ class _CreateBlogScreenState extends State<CreateBlogScreen> {
                     textAlignVertical: TextAlignVertical.top,
                     decoration: InputDecoration(
                       hintText: 'Share a news update, claim, or thought...',
-                      hintStyle: TextStyle(color: Colors.grey.shade400),
+                      hintStyle: TextStyle(color: Colors.black),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: theme.dividerColor),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF1D468B), width: 2),
+                        borderSide: const BorderSide(color: Color(0xFF4A342A), width: 2),
                       ),
                       filled: true,
                       fillColor: theme.cardColor,
@@ -124,8 +124,8 @@ class _CreateBlogScreenState extends State<CreateBlogScreen> {
                   icon: const Icon(Icons.verified_user_outlined),
                   label: const Text('Fact-Check & Publish', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1D468B),
-                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0xFF4A342A),
+                    foregroundColor: Color(0xFFD7C9B8),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -141,11 +141,11 @@ class _CreateBlogScreenState extends State<CreateBlogScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: Colors.white),
+                    CircularProgressIndicator(color: Color(0xFFD7C9B8)),
                     SizedBox(height: 16),
                     Text(
                       'Analyzing Context & Fact-Checking...',
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Color(0xFFD7C9B8), fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),

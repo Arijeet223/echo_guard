@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../models/analysis_result.dart';
 
 /// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-/// EchoGuard Direct Analysis Service
+/// Veritas Direct Analysis Service
 /// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ///
 /// PRIMARY:  Inception Labs Mercury-2 API  (direct from phone, no backend)
@@ -28,7 +28,7 @@ class DirectAnalysisService {
   static const String _inceptionModel = 'mercury-2';          // ← full model, NOT coder-small
 
   /// OCR.space — free text extraction from images
-  static const String _ocrSpaceKey = 'helloworld';
+  static const String _ocrSpaceKey = 'K86345433788957';
   static const String _ocrSpaceUrl = 'https://api.ocr.space/parse/image';
 
   // ══════════════════════════════════════════════════════════════════════
@@ -36,7 +36,7 @@ class DirectAnalysisService {
   // ══════════════════════════════════════════════════════════════════════
 
   static const String _systemPrompt = '''
-You are EchoGuard, an advanced, highly-accurate AI fact-checking engine.
+You are Veritas, an advanced, highly-accurate AI fact-checking engine.
 Analyze the user's claim. You are expected to provide the FINAL analysis.
 Your primary directive: If live web search results are provided, you MUST prioritize them over your internal knowledge, as your training data cuts off in 2025. Does the scraped news confirm or refute the claim?
 Do NOT output any intermediate search queries or tool calls.
@@ -108,11 +108,15 @@ Rules:
   /// Analyze an image — OCR.space extracts text, then Inception analyzes it.
   static Future<AnalysisResult> analyzeImage(String base64Image) async {
     // ── Step 1: Extract text via OCR.space ──────────────────────────────
-    final extractedText = await extractTextFromImage(base64Image);
-    print('[EchoGuard] OCR extracted ${extractedText.length} chars');
+    final rawText = await extractTextFromImage(base64Image);
+    print('[Veritas] OCR extracted ${rawText.length} chars');
 
-    // ── Step 2: Feed extracted text into Inception (same as typing it) ──
-    final result = await _analyzeViaInception(extractedText);
+    // ── Step 2: Structure/clean the extracted text ──────────────────────
+    final cleanedText = _structureOcrText(rawText);
+    print('[Veritas] Cleaned text: ${cleanedText.length} chars');
+
+    // ── Step 3: Feed structured text into Inception ────────────────────
+    final result = await _analyzeViaInception(cleanedText);
 
     // Attach the OCR text to the result for display
     return AnalysisResult(
@@ -124,11 +128,60 @@ Rules:
       clickbait: result.clickbait,
       balancedViews: result.balancedViews,
       aiReasoning: result.aiReasoning,
-      extractedText: extractedText,
+      extractedText: rawText,
     );
   }
 
-  /// Extract text from a base64 image using OCR.space (free, no key needed).
+  // ══════════════════════════════════════════════════════════════════════
+  //  TEXT STRUCTURING — Strip UI noise from OCR output
+  // ══════════════════════════════════════════════════════════════════════
+
+  /// Cleans raw OCR text by removing common screen UI artifacts,
+  /// short garbage lines, and known noise patterns so only the
+  /// actual news claim or article text remains for AI analysis.
+  static String _structureOcrText(String raw) {
+    // Noise patterns commonly found in mobile screenshots
+    final noisePatterns = [
+      RegExp(r'\d{1,2}:\d{2}\s*(AM|PM|am|pm)?', caseSensitive: false), // timestamps
+      RegExp(r'\d{1,3}%'), // battery levels
+      RegExp(r'(WiFi|LTE|4G|5G|\bVoLTE\b)', caseSensitive: false), // signal info
+      RegExp(r'^(Like|Share|Reply|Retweet|Comment|Follow|Subscribe|Send|Save|Report)\s*\$', caseSensitive: false, multiLine: true),
+      RegExp(r'^(Home|Search|Notifications|Messages|Profile|Settings|Menu|More)\s*\$', caseSensitive: false, multiLine: true),
+      RegExp(r'^@\w+\s*\$', multiLine: true), // lone @usernames
+      RegExp(r'^\d+[KkMm]?\s*(likes?|comments?|shares?|views?|retweets?|replies)\s*\$', caseSensitive: false, multiLine: true),
+      RegExp(r'(\d+\s*(min|h|d|w|mo|yr)\s*ago)', caseSensitive: false), // relative timestamps
+    ];
+
+    // Split into lines and filter
+    final lines = raw.split(RegExp(r'[\r\n]+'));
+    final cleanedLines = <String>[];
+
+    for (var line in lines) {
+      var cleanLine = line.trim();
+      if (cleanLine.isEmpty) continue;
+      if (cleanLine.length < 5) continue; // skip very short lines (UI labels)
+
+      // Remove lines that are purely noise
+      bool isNoise = false;
+      for (final pattern in noisePatterns) {
+        if (pattern.hasMatch(cleanLine) && cleanLine.length < 30) {
+          isNoise = true;
+          break;
+        }
+      }
+      if (isNoise) continue;
+
+      cleanedLines.add(cleanLine);
+    }
+
+    // Join the surviving lines into a coherent block
+    final structured = cleanedLines.join(' ');
+
+    // Final cleanup: collapse multiple spaces
+    return structured.replaceAll(RegExp(r'\s{2,}'), ' ').trim();
+  }
+
+  /// Extract text from a base64 image using OCR.space.
   static Future<String> extractTextFromImage(String base64Image) async {
     final mimeType = _detectMime(base64Image);
     final base64Url = 'data:$mimeType;base64,$base64Image';
@@ -180,7 +233,7 @@ Rules:
       if (query.isEmpty) return 'No news query generated.';
 
       final url = 'https://news.google.com/rss/search?q=$query&hl=en-US&gl=US&ceid=US:en';
-      print('[EchoGuard] Live News Web Search: $url');
+      print('[Veritas] Live News Web Search: $url');
       
       final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
       if (response.statusCode != 200) return 'News search failed (HTTP ${response.statusCode}).';
@@ -212,10 +265,10 @@ Rules:
         count++;
       }
       
-      print('[EchoGuard] Scraped ${count-1} live news articles.');
+      print('[Veritas] Scraped ${count-1} live news articles.');
       return newsContext.toString();
     } catch (e) {
-      print('[EchoGuard] News scrape failed: $e');
+      print('[Veritas] News scrape failed: $e');
       return 'News scrape failed: $e';
     }
   }
@@ -234,7 +287,7 @@ Rules:
       final combinedPrompt = 'CLAIM TO ANALYZE:\n"$text"\n\n$newsContext\n\n'
           'Remember: Prioritize the live news search results to determine if the claim is factual, misleading, or outright false. Give a precise credibility score.';
 
-      print('[EchoGuard] Calling Inception Mercury-2 with RAG context...');
+      print('[Veritas] Calling Inception Mercury-2 with RAG context...');
 
       final response = await http.post(
         Uri.parse(_inceptionUrl),
@@ -255,7 +308,7 @@ Rules:
       ).timeout(const Duration(seconds: 45));
 
       if (response.statusCode != 200) {
-        print('[EchoGuard] Inception API HTTP ${response.statusCode}: ${response.body}');
+        print('[Veritas] Inception API HTTP ${response.statusCode}: ${response.body}');
         throw Exception('Inception API error ${response.statusCode}');
       }
 
@@ -268,11 +321,11 @@ Rules:
 
       // Robust JSON extraction — handle markdown fences, extra text, etc.
       final json = _extractJson(content);
-      print('[EchoGuard] Inception credibility: ${json['credibility']}');
+      print('[Veritas] Inception credibility: ${json['credibility']}');
       return _parseResult(json);
 
     } catch (e) {
-      print('[EchoGuard] Inception failed ($e), falling back to local analysis');
+      print('[Veritas] Inception failed ($e), falling back to local analysis');
       return _analyzeLocally(text);
     }
   }

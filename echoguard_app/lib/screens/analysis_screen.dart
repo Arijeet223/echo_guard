@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import '../models/analysis_result.dart';
 import '../services/api_service.dart';
@@ -54,9 +55,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Color _getScoreColor(double score) {
-    if (score >= 70) return const Color(0xFF10B981);
-    if (score >= 40) return Colors.amber.shade600;
-    return Colors.red;
+    if (score >= 70) return const Color(0xFF556B2F);
+    if (score >= 40) return Color(0xFFCD853F);
+    return Color(0xFF8B0000);
   }
 
   String _getScoreLabel(double score) {
@@ -72,7 +73,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       return;
     }
     final d = _result!;
-    final text = 'EchoGuard Analysis Complete. Credibility score is ${d.credibility.toStringAsFixed(0)} percent. '
+    final text = 'Veritas Analysis Complete. Credibility score is ${d.credibility.toStringAsFixed(0)} percent. '
         'Manipulation alert is ${d.manipulation.level}. Dominant emotion is ${d.manipulation.emotion}. '
         'Bias meter reads ${d.bias.leaning} leaning. '
         'Clickbait is ${d.clickbait.isClickbait ? "detected" : "not detected"}. '
@@ -102,9 +103,25 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         backgroundColor: theme.appBarTheme.backgroundColor,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
-        title: Text('EchoGuard Analysis', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.appBarTheme.foregroundColor)),
+        title: Text('Veritas Analysis', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.appBarTheme.foregroundColor)),
         centerTitle: true,
-        actions: [IconButton(icon: const Icon(Icons.share), onPressed: () {})],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: () {
+              if (_result != null) {
+                final d = _result!;
+                final scoreEmoji = d.credibility >= 70 ? '✅' : d.credibility >= 40 ? '⚠️' : '❌';
+                final shareText = '🔍 Veritas Analysis:\n\n'
+                    '"${widget.text}"\n\n'
+                    '$scoreEmoji Credibility Score: ${d.credibility.toInt()}/100\n'
+                    '🧠 AI Verdict: ${d.aiReasoning}\n\n'
+                    '— Verified by Veritas';
+                Share.share(shareText);
+              }
+            },
+          )
+        ],
       ),
       body: _loading
           ? _buildLoading()
@@ -119,11 +136,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SizedBox(width: 64, height: 64, child: CircularProgressIndicator(strokeWidth: 4, color: Color(0xFF1D468B))),
+          const SizedBox(width: 64, height: 64, child: CircularProgressIndicator(strokeWidth: 4, color: Color(0xFF4A342A))),
           const SizedBox(height: 24),
           const Text('Analyzing Content...', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Text('Cross-referencing trusted sources\nand detecting manipulation patterns.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+          Text('Cross-referencing trusted sources\nand detecting manipulation patterns.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.black)),
         ],
       ),
     );
@@ -134,11 +151,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.red),
+          const Icon(Icons.error_outline, size: 48, color: Color(0xFF8B0000)),
           const SizedBox(height: 16),
           const Text('Analysis Failed', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Text('Could not connect to the backend.\nMake sure FastAPI is running.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
+          Text('Could not connect to the backend.\nMake sure FastAPI is running.', textAlign: TextAlign.center, style: TextStyle(color: Colors.black, fontSize: 14)),
           const SizedBox(height: 24),
           ElevatedButton(onPressed: () { setState(() { _loading = true; _error = null; }); _fetchAnalysis(); }, child: const Text('Try Again')),
         ],
@@ -163,8 +180,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               icon: Icon(_isSpeaking ? Icons.stop_circle : Icons.volume_up, size: 16),
               label: Text(_isSpeaking ? 'Stop Reading' : 'Speak Analysis', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1D468B),
-                foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFF4A342A),
+                foregroundColor: Color(0xFFD7C9B8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
@@ -182,11 +199,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
                 )),
                 const SizedBox(height: 16),
-                Text('CREDIBILITY SCORE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.grey.shade500)),
+                Text('CREDIBILITY SCORE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.black)),
                 const SizedBox(height: 16),
                 _buildGauge(d.credibility, color),
                 const SizedBox(height: 12),
-                Text('Fake Probability: ${d.fakeProbability.toStringAsFixed(1)}%', style: TextStyle(color: Colors.red.shade400, fontWeight: FontWeight.bold)),
+                Text('Fake Probability: ${d.fakeProbability.toStringAsFixed(1)}%', style: TextStyle(color: Color(0xFF8B0000), fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 _expandableReasoning(d.aiReasoning),
               ],
@@ -221,7 +238,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.diversity_3, color: Color(0xFF1D468B), size: 20),
+                    const Icon(Icons.diversity_3, color: Color(0xFF4A342A), size: 20),
                     const SizedBox(width: 8),
                     const Text('Balanced Perspectives', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                   ],
@@ -262,18 +279,18 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             color: Theme.of(context).scaffoldBackgroundColor,
             child: Column(
               children: [
-                Text('RATE THIS ANALYSIS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: Colors.grey.shade500)),
+                Text('RATE THIS ANALYSIS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: Colors.black)),
                 const SizedBox(height: 12),
                 if (_feedbackSent)
-                  const Text('Thank you for your feedback!', style: TextStyle(color: Color(0xFF1D468B), fontWeight: FontWeight.w600, fontSize: 13))
+                  const Text('Thank you for your feedback!', style: TextStyle(color: Color(0xFF4A342A), fontWeight: FontWeight.w600, fontSize: 13))
                 else
                   Row(
                     children: [
-                      _feedbackBtn('Accurate', Colors.green),
+                      _feedbackBtn('Accurate', Color(0xFF556B2F)),
                       const SizedBox(width: 8),
-                      _feedbackBtn('Misleading', Colors.red),
+                      _feedbackBtn('Misleading', Color(0xFF8B0000)),
                       const SizedBox(width: 8),
-                      _feedbackBtn('Unclear', Colors.grey),
+                      _feedbackBtn('Unclear', Colors.black),
                     ],
                   ),
               ],
@@ -297,7 +314,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text('${score.toStringAsFixed(0)}', style: TextStyle(fontSize: 42, fontWeight: FontWeight.w800, color: color)),
-                Text('%', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
+                Text('%', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
               ],
             ),
           ),
@@ -311,20 +328,20 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       tilePadding: EdgeInsets.zero,
       childrenPadding: const EdgeInsets.only(bottom: 8),
       title: const Text('Why did we give this score?', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-      children: [Text(reasoning, style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.5))],
+      children: [Text(reasoning, style: TextStyle(fontSize: 13, color: Colors.black, height: 1.5))],
     );
   }
 
   Widget _manipulationCard(AnalysisResult d) {
     final isHigh = d.manipulation.level == 'HIGH';
     final isMed = d.manipulation.level == 'MEDIUM';
-    final badgeColor = isHigh ? Colors.red : isMed ? Colors.orange : Colors.grey;
+    final badgeColor = isHigh ? Color(0xFF8B0000) : isMed ? Color(0xFFCD853F) : Colors.black;
     return _card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const Icon(Icons.campaign, color: Colors.red, size: 18),
+            const Icon(Icons.campaign, color: Color(0xFF8B0000), size: 18),
             const SizedBox(width: 6),
             const Expanded(child: Text('Manipulation', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold))),
             Container(
@@ -341,8 +358,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             const SizedBox(height: 10),
             Wrap(spacing: 4, runSpacing: 4, children: d.manipulation.keywords.map((w) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: const Color(0xFFFDFBF7), borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.grey.shade200)),
-              child: Text('"$w"', style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+              decoration: BoxDecoration(color: const Color(0xFFD7C9B8), borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.black)),
+              child: Text('"$w"', style: TextStyle(fontSize: 10, color: Colors.black)),
             )).toList()),
           ],
         ],
@@ -357,36 +374,36 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const Icon(Icons.balance, color: Colors.orange, size: 18),
+            const Icon(Icons.balance, color: Color(0xFFCD853F), size: 18),
             const SizedBox(width: 6),
             const Expanded(child: Text('Bias Meter', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold))),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: (isNeutral ? Colors.green : Colors.orange).withOpacity(0.15), borderRadius: BorderRadius.circular(4)),
-              child: Text(d.bias.leaning, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: isNeutral ? Colors.green.shade700 : Colors.orange.shade700)),
+              decoration: BoxDecoration(color: (isNeutral ? Color(0xFF556B2F) : Color(0xFFCD853F)).withOpacity(0.15), borderRadius: BorderRadius.circular(4)),
+              child: Text(d.bias.leaning, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: isNeutral ? Color(0xFF556B2F) : Color(0xFFCD853F))),
             ),
           ]),
           const SizedBox(height: 12),
           Center(child: Text('${d.bias.leaning} LEANING', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
           const SizedBox(height: 4),
-          Center(child: Text('Confidence: ${d.bias.confidence.toStringAsFixed(0)}%', style: TextStyle(fontSize: 11, color: Colors.grey.shade500))),
+          Center(child: Text('Confidence: ${d.bias.confidence.toStringAsFixed(0)}%', style: TextStyle(fontSize: 11, color: Colors.black))),
           const SizedBox(height: 10),
           Row(children: [
             Expanded(flex: 1, child: Container(height: 6, decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(3)))),
             const SizedBox(width: 2),
-            Expanded(flex: 1, child: Container(height: 6, color: Colors.grey.shade300)),
+            Expanded(flex: 1, child: Container(height: 6, color: Colors.black)),
             const SizedBox(width: 2),
-            Expanded(flex: 1, child: Container(height: 6, decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(3)))),
+            Expanded(flex: 1, child: Container(height: 6, decoration: BoxDecoration(color: Color(0xFF8B0000), borderRadius: BorderRadius.circular(3)))),
           ]),
           if (d.bias.propagandaFlag) ...[
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.red.shade100)),
+              decoration: BoxDecoration(color: Color(0xFF8B0000).withOpacity(0.1), borderRadius: BorderRadius.circular(4), border: Border.all(color: Color(0xFF8B0000).withOpacity(0.2))),
               child: Row(children: [
-                Icon(Icons.flag, size: 12, color: Colors.red.shade600),
+                Icon(Icons.flag, size: 12, color: Color(0xFF8B0000)),
                 const SizedBox(width: 4),
-                Text('Propaganda pattern likely', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.red.shade600)),
+                Text('Propaganda pattern likely', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF8B0000))),
               ]),
             ),
           ],
@@ -398,7 +415,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   Widget _sourceCard(AnalysisResult d) {
     final isHigh = d.sourceReliability.level == 'HIGH';
     final isMed = d.sourceReliability.level == 'MEDIUM';
-    final badgeColor = isHigh ? Colors.green : isMed ? Colors.amber : Colors.red;
+    final badgeColor = isHigh ? Color(0xFF556B2F) : isMed ? Color(0xFFCD853F) : Color(0xFF8B0000);
     return _card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,7 +441,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
   Widget _clickbaitCard(AnalysisResult d) {
     final isClickbait = d.clickbait.isClickbait;
-    final color = isClickbait ? Colors.red : const Color(0xFF10B981);
+    final color = isClickbait ? Color(0xFF8B0000) : const Color(0xFF556B2F);
     return _card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -436,12 +453,12 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
-              child: Text(isClickbait ? 'DETECTED' : 'NONE', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white)),
+              child: Text(isClickbait ? 'DETECTED' : 'NONE', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFD7C9B8))),
             ),
           ]),
           const SizedBox(height: 12),
           Text(isClickbait ? 'YES' : 'NO', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: color, letterSpacing: 1)),
-          Text('Probability: ${d.clickbait.probability.toStringAsFixed(1)}%', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+          Text('Probability: ${d.clickbait.probability.toStringAsFixed(1)}%', style: TextStyle(fontSize: 11, color: Colors.black)),
           const SizedBox(height: 8),
           LinearProgressIndicator(
             value: d.clickbait.probability / 100,
@@ -457,7 +474,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   Widget _metricRow(String label, String value, {Color? valueColor}) {
     return Builder(builder: (context) {
       return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.black)),
         Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: valueColor ?? Theme.of(context).textTheme.bodyLarge?.color)),
       ]);
     });
@@ -473,7 +490,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             padding: const EdgeInsets.symmetric(vertical: 10),
           ),
-          child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade500)),
+          child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black)),
         ),
       );
     });
